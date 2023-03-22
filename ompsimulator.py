@@ -467,9 +467,6 @@ if __name__ == '__main__':
   
   # INITIALIZATION OF MODELS
     if dpmname=='iomp1':
-#      y0A=[0, cicA, 0]
-#      y0A=[0, cicA, dmrateinitpass]+ [tau0]*naxons
-#      print("dmrateinitpass=", dmrateinitpass)
       y0A_nontau=[0, cicA, dmrateinitpass]
       if csolver in ['odeint']:
         keyboard('is this happening')
