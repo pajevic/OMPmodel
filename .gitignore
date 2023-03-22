@@ -1,0 +1,6 @@
+# ignore results scripts .txt and .out files
+__pycache__/
+results/
+scripts/
+*.out
+*.txt

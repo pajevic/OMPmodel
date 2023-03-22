@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# The code originally used to run OMP simulations and generate the results reported in the manuscript [1]. Use ompmodel.py for the latest implementation of the OMP model
-
 from omputils import *
 
 try:
@@ -85,6 +83,8 @@ gprogvars['mintisi']=0
 gprogvars['maxtisi']='tau0'
 gprogvars['maxtisi']='tr_9.5'
 gprogvars['displayfig']=0
+#gprogvars['gax0']
+#gprogvars['gah0']
 
 ddrprevtemp=-1
 grunhelpers=[0,0,0,0,0,0]
@@ -665,6 +665,11 @@ if __name__ == '__main__':
                      if verbose>4: print("INTEGRATING NOW between prev=%g and tsp=%g" % (tprev, tsp))
 #                     sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True, events=event_func)
                      sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True)
+#                     try:
+ #                    except:
+ #                      print('sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True, events=event_func)')
+ #                      print('FAILED solve_ivp')
+ #                      keyboard('FAILED solve_ivp: check DPmodel y0 ')
                      odestatus=sol1.status
                      
                      if odestatus == 1: # OLIGO-SPIKE : Oligoevent was hit

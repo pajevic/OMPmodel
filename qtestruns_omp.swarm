@@ -1,0 +1,4 @@
+python3 ompsimulator.py 0 dpname=omp1 lrnrate=0.1 myelrate=0.01 drreps=0.00001 naxons=10 noligos=2 taurA=30 taudA=30 taumax=100 taumin=3 taunom=50 predelay=nrn_5 reft=0 tr=200 jitter=1 spdata=case_syncall saver=5 nwarmup=1 nreps=2 nsreps=20 Tsecs=5 name=qtestrun1omp randseed=12345
+python3 ompsimulator.py 0 dpname=omp1 lrnrate=0.05 myelrate=0.01 drreps=0.00001 naxons=10 noligos=3 taurA=30 taudA=30 taumax=100 taumin=3 taunom=50 predelay=nrn_5 reft=0 tr=500 jitter=1 spdata=case_syncall saver=5 nwarmup=1 nreps=2 nsreps=20 Tsecs=5 name=qtestrun2omp randseed=12345
+python3 ompsimulator.py 0 dpname=iomp1 lrnrate=0.02 myelrate=0.01 drreps=0.00001 naxons=10 noligos=3 taurA=30 taudA=30 taumax=100 taumin=3 taunom=50 predelay=nrn_5 reft=0 tr=500 jitter=1 spdata=case_syncall saver=5 nwarmup=1 nreps=2 nsreps=20 Tsecs=5 name=qtestrun3omp randseed=12345
+
