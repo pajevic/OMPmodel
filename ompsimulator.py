@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# this code is used to generate the data for the OMP paper
+
 from omputils import *
 
 try:
