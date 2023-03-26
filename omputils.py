@@ -1,4 +1,3 @@
-
 import os, sys, time, re
 import numpy as np
 import scipy as sp
@@ -106,30 +105,29 @@ ntrains=10
 nsync=5
 ndelays=3
 print('When having %d trains and %d delays:' % (ntrains, ndelays))
-nspdata=['train%d' % (itr+1) for itr in range(nsync)]
+nspksig=['train%d' % (itr+1) for itr in range(nsync)]
 nremtr=ntrains-nsync
 td=['td%d' % (itr+1) for itr in range(ndelays)]
 for irem in range(nremtr):
-    print('Creating additional train using synctrain %s with delay %s' % (nspdata[irem%nsync], td[irem%ndelays]))
+    print('Creating additional train using synctrain %s with delay %s' % (nspksig[irem%nsync], td[irem%ndelays]))
 """,
 """
 print('Demo: Basic Usage for ompsimulator:
 Example 1:
-python3 oligosimulator_pruned.py 0 dpname=omp1 lrnrate=0.1 myelrate=0.01 drreps=0.00001 naxons=10 noligos=2 taurA=30 taudA=30 taumax=100 taumin=3 taunom=50 predelay=nrn_5 reft=0 tr=200 jitter=1 spdata=case_syncall saver=5 nwarmup=1 nreps=2 nsreps=20 Tsecs=5 name=omprunname randseed=12345
+python3 oligosimulator_pruned.py 0 dpname=omp1 lamm=0.1 ... ????? ADD THE EXAMPLE
 Example 2:
-python3 oligosimulator_pruned.py 0 dpname=iomp1 lrnrate=0.02 myelrate=0.01 drreps=0.00001 naxons=10 noligos=3 taurA=30 taudA=30 taumax=70 taumin=5 taunom=40 predelay=nrn_5 reft=0 tr=500 jitter=1 spdata=case_syncall saver=5 nwarmup=1 nreps=2 nsreps=20 Tsecs=5 name=instamyelinrun
 """
 ]
 
 msyncdict={'p':'pois','s':'sync'}
 
-pyvar2texdict={'drreps' : r'$\lambda_H$', 'lrnrate': r'$\lambda_M$', 'myelrate': r'$\lambda_A$', 'taurA': r'$\tau_G$', 'taudA': r'$\tau_G$', 'noligos':r'$N_O$', 'jitter': r'$\sigma_j$', 'naxons': r'$N_A$', 'tr': r'$\tau_s$', 'predelay' : r'$\sigma_D$', 'taumax' : r'$\tau_\mathrm{max}$', 'taumin' : r'$\tau_\mathrm{min}$', 'taunom' : r'$\tau_\mathrm{nom}$', 'reft' : '$t_R$', 'Tsecs':'$T_e$', 'nreps':'$n_r$', 'nsreps':'$n_e$', 'trpjitt' : r'$\sigma_s$'}
+pyvar2texdict={'lamh' : r'$\lambda_H$', 'lamm': r'$\lambda_M$', 'lama': r'$\lambda_A$', 'taug': r'$\tau_G$', 'taud': r'$\tau_d$', 'taud': r'$\tau_d$', 'nol':r'$N_O$', 'jitter': r'$\sigma_j$', 'nax': r'$N_A$', 'tr': r'$\tau_s$', 'fixedel' : r'$\sigma_D$', 'taumax' : r'$\tau_\mathrm{max}$', 'taumin' : r'$\tau_\mathrm{min}$', 'taunom' : r'$\tau_\mathrm{nom}$', 'tref' : '$t_R$', 'Tesec':'$T_e$', 'nreps':'$n_r$', 'nepochs':'$n_e$', 'trpjitt' : r'$\sigma_s$'}
 
 pvar2texdict={'lamr' : r'$\lambda_R$', 'lamr' : r'$\lambda_R$', 'gav' : r'$G_{av}$', 'mps': r'$M_a$', 'sigtau': r'$\sigma_\tau$', 'taus': r'$\tau_a$', 'fdtaus': r'$D_a+\tau_a$' }
 
 pvar_name_change_dict={'lame':'lamr'}
 
-unitstr= {'taudA':' ms', 'taurA': 'ms', 'lrnrate':'', 'jitter': ' ms', 'drreps':'', 'noligos':'', 'naxons':'', 'tr':' ms', 'myelrate':'', 'predelay':' ms', 'taumin':' ms', 'taumax':' ms', 'taunom':' ms', 'Tsecs': ' s'}
+unitstr= {'taud':' ms', 'taug': 'ms', 'lamm':'', 'jitter': ' ms', 'lamh':'', 'nol':'', 'nax':'', 'tr':' ms', 'lama':'', 'fixedel':' ms', 'taumin':' ms', 'taumax':' ms', 'taunom':' ms', 'Tesec': ' s'}
 
 def pvar2tex(vstr):
    if vstr in pvar2texdict: return pvar2texdict[vstr]
@@ -154,10 +152,10 @@ def pyvar2tex(vstr, unitvar=''):
      else:
        return vstr
 
-def varstr2val(vstr, vname='predelay'):
+def varstr2val(vstr, vname='fixedel'):
   if isinstance(vstr, list):
     return [varstr2val(vs,vname=vname) for vs in vstr]
-  if vname=='predelay':
+  if vname=='fixedel':
     if 'nrn_' in vstr: return float(vstr[4:])
     else: return tryany(vstr)
   else:
@@ -226,12 +224,12 @@ def get_atime_spread_kgroups(atimes, kg=2, get_labels=False):
     if isinstance(atimes, (str,int,np.integer)):
        if isinstance(atimes, (int,np.integer)): kg=atimes
        return [r'$\sigma_{tot}$']+["$\\sigma_%d$" % (ck+1) for ck in range(kg)]+[r"$\mu_{RS1}$",r"$\sigma_{RS1}$" ,r"$\sigma_W$",r"$\sigma_B$"]
-    naxons=len(atimes)
+    nax=len(atimes)
     sspread= [ np.std(atimes) ]
     if kg>1:
-      if ( naxons<(kg*2) ) or ( naxons%kg != 0 ):
+      if ( nax<(kg*2) ) or ( nax%kg != 0 ):
          return sspread + [None]*(kg+4)
-      k1=naxons//kg
+      k1=nax//kg
       subspreads = [np.std(atimes[ik*k1:(ik+1)*k1]) for ik in range(kg)]
       subspreads += get_rndsubsample_estimate_atime(atimes, k1)
       subspreads += get_wbgroup_spread(atimes, kg)
@@ -242,7 +240,7 @@ def get_atime_spread_kgroups(atimes, kg=2, get_labels=False):
 # OMDP model class
 
 class OMDPmodel:
-  def __init__(self, dparams=None, global_params=None, naxons=None):
+  def __init__(self, dparams=None, global_params=None, nax=None):
       """ tr inverse spike rate / ISI time interval in "tunit"s;
       """
       if dparams is None:
@@ -251,11 +249,11 @@ class OMDPmodel:
       if 'ode_order' in global_params:
           odeord=global_params['ode_order']
       else: odeord=1
-      if naxons is None:
-        if 'naxons' in dparams:
-           naxons=dparams['naxons']
+      if nax is None:
+        if 'nax' in dparams:
+           nax=dparams['nax']
         else:
-           naxons=10
+           nax=10
            
       self.dparams=dparams
            
@@ -264,15 +262,15 @@ class OMDPmodel:
   def init_model_params(self, dparams=None):
       if dparams is None:
          dparams=self.dparams
-      self.taumins=dparams['taumin']*np.ones(naxons)
-      self.taumaxs=dparams['taumax']*np.ones(naxons)
-      self.taunoms=dparams['taunom']*np.ones(naxons)
-      self.dtaus=np.ones(naxons)
+      self.taumins=dparams['taumin']*np.ones(nax)
+      self.taumaxs=dparams['taumax']*np.ones(nax)
+      self.taunoms=dparams['taunom']*np.ones(nax)
+      self.dtaus=np.ones(nax)
       self.drate=drate
       self.spiketrains=[]
       self.sptimes=[]
       self.itrain=[]
-      self.nvars=5+naxons
+      self.nvars=5+nax
       self.dydts=np.zeros(self.nvars)
       
       if odeord:      
@@ -295,7 +293,7 @@ class OMDPmodel:
     dvb = - self.aB * self.bB * y[3] - (self.aB + self.bB)*y[4] # + c \delta(t)
     itau=5
     self.dydts[:itau]=[dbasea, du, dv, dub, dvb, dtau]
-    for iax in range(naxons):
+    for iax in range(nax):
        dtau = self.drate * self.fsfunc(y[iax+itau]) # - xxx \delta(t)
        self.dydts[itau+iax]=dtau
     return dydts
@@ -313,11 +311,11 @@ class OMDPmodel:
       if dratec<1.e-35:
          keyboard('dratec problem')
       ddr=0
-      for iax in range(gnaxons):
+      for iax in range(gnax):
          ctau=y[iax+itau]
          fsval=fsfuncdemyel(ctau)
-  #       ddr += dratec* 1.e-3*(otaunom-ctau)/gnaxons # /(1-fsval)
-         ddr += dratec* drreps *(otaunom-ctau)/gnaxons # /(1-fsval)
+  #       ddr += dratec* 1.e-3*(otaunom-ctau)/gnax # /(1-fsval)
+         ddr += dratec* lamh *(otaunom-ctau)/gnax # /(1-fsval)
          dtau = dratec * fsval # - xxx \delta(t)
          gdydts[itau+iax]=dtau
          if verbose>6:
@@ -338,10 +336,10 @@ def params2filename(paramabbrevs=None, prefix='results/', **params):
       paramabbrevs['ntotsig']=('nsig','%d')
       paramabbrevs['truedelay']=('td','%d'), 
       paramabbrevs['nruns']=('nruns' ,'%d')
-      paramabbrevs['Tsecs']=('T' ,'%d')
+      paramabbrevs['Tesec']=('T' ,'%d')
       paramabbrevs['tr1']=('tra','%d')
       paramabbrevs['tr2']=('trb','%d')
-      paramabbrevs['reft']=('rf', '%d')
+      paramabbrevs['tref']=('rf', '%d')
       paramabbrevs['actrise']=('ar','%d')
       paramabbrevs['actdecay']=('ad','%d')
 
@@ -365,31 +363,31 @@ def params2filename(paramabbrevs=None, prefix='results/', **params):
       sys.exit(-1)
    return savefilename
 
-def Tfunc(tr1,reft=0):
-    Ttr=75*(tr1+reft) + 750
+def Tfunc(tr1,tref=0):
+    Ttr=75*(tr1+tref) + 750
     return Ttr
       
 def generate_runs(runparams=None, defparams=None, prefix='results/', **params):
-   """python oligolearn.py 20 25 actrise=1 actdecay=12 Tsecs=2100 tr1=20 truedelay=5 reft=5"""
+   """python oligolearn.py 20 25 actrise=1 actdecay=12 Tesec=2100 tr1=20 truedelay=5 tref=5"""
    if defparams is None:
       defparams={}
       defparams['rname']='allrunsC'
       defparams['ntotsig']=('nsig','%d', 20)
       defparams['nruns']=('nruns' ,'%d', 25)
       defparams['truedelay']=('td','%d', 2), 
-      defparams['Tsecs']=('T' ,'%d', Tfunc)
+      defparams['Tesec']=('T' ,'%d', Tfunc)
       defparams['tr1']=('tra','%d', 10)
       defparams['tr2']=('trb','%d', 10)
-      defparams['reft']=('rf', '%d', 0)
+      defparams['tref']=('rf', '%d', 0)
       defparams['actrise']=('ar','%d', 10)
       defparams['actdecay']=('ad','%d', 10)
 
    if runparams is None:
       runparams={}
       runparams['truedelay']=[1,2,5,10]
-      runparams['Tsecs']='Tfunc'
+      runparams['Tesec']='Tfunc'
       runparams['tr1']=[5,10,20, 50]
-      runparams['reft']=[0]
+      runparams['tref']=[0]
       runparams['actrise']=[1,2,5,10,20,30,50]
       runparams['actdecay']=[1,2,5,10,20,30,50]
 
@@ -398,15 +396,15 @@ def generate_runs(runparams=None, defparams=None, prefix='results/', **params):
 #  for rprm in runparams:
 #         for 
 #         rnstr+=' %s=%s
-#   """python oligolearn.py 20 25 actrise=1 actdecay=12 Tsecs=2100 tr1=20 truedelay=5 reft=5"""
+#   """python oligolearn.py 20 25 actrise=1 actdecay=12 Tesec=2100 tr1=20 truedelay=5 tref=5"""
    fsw=open('subinewF.swarm','w')
    for ar in runparams['actrise']:
      for ad in runparams['actdecay']:
        for tr1 in runparams['tr1']:
          for td in runparams['truedelay']:
-           for rf in runparams['reft']:
+           for rf in runparams['tref']:
               Tc=Tfunc(tr1,rf)
-              print("python oligolearn.py 20 25 actrise=%d actdecay=%d Tsecs=%d tr1=%d truedelay=%d reft=%d" % (ar,ad,Tc,tr1,td,rf), file=fsw)
+              print("python oligolearn.py 20 25 actrise=%d actdecay=%d Tesec=%d tr1=%d truedelay=%d tref=%d" % (ar,ad,Tc,tr1,td,rf), file=fsw)
    fsw.close()     
   
 #from matplotlib import rc
@@ -631,15 +629,15 @@ def plotspikes(spikes, tspan=None, nax=None, show=True, toffset=0, labels=None, 
       hplot=plot_sptrains(sptrains, tspan=tspan, show=show, toffset=toffset, labels=labels, axplt=axplt, hplot=hplot, color=color)
       return hplot
 
-def plot_prepost_spread(predelays, axdelays, pltparams={}, ax=None, title='Axon delays', legends=[], **pltargs):
+def plot_prepost_spread(fixedels, axdelays, pltparams={}, ax=None, title='Axon delays', legends=[], **pltargs):
       if 'axloffs' in pltparams:
          axloffs=pltparams['axloffs']
       else:
          axloffs=0.5
-      naxons=len(predelays)
-      labels=['A%d' % (iax+1) for iax in range(naxons)]
+      nax=len(fixedels)
+      labels=['A%d' % (iax+1) for iax in range(nax)]
       
-      totdelays=predelays+axdelays
+      totdelays=fixedels+axdelays
       
       if ax is None: fig, pax = plt.subplots()
       else: pax=ax
@@ -649,18 +647,18 @@ def plot_prepost_spread(predelays, axdelays, pltparams={}, ax=None, title='Axon 
        
       if 'taumin' in pltparams:
          taumin=pltparams['taumin']
-#         pax.plot([taumin, taumin],[-axloffs, naxons+axloffs],'k--', linewidth=3, label=None)
+#         pax.plot([taumin, taumin],[-axloffs, nax+axloffs],'k--', linewidth=3, label=None)
          pax.axvline(taumin, color=[0.2,0,0.], linestyle="--", linewidth=3)
          xmint=taumin*0.25
       else: xmint=0.
       if 'taumax' in pltparams:
          taumax=pltparams['taumax']
-#         pax.plot([taumax, taumax],[-axloffs, naxons+axloffs],'k--', linewidth=3, label=None)
+#         pax.plot([taumax, taumax],[-axloffs, nax+axloffs],'k--', linewidth=3, label=None)
          pax.axvline(taumax, color=[0,0,0.2], linestyle="--", linewidth=3)
          xmaxt=taumax*1.05
       else: xmaxt=max(axdelays)
 
-#      pax.barh(np.arange(naxons)*1, [predelays, axdelays], align='center', height=0.5, stacked=True, **pltargs)
+#      pax.barh(np.arange(nax)*1, [fixedels, axdelays], align='center', height=0.5, stacked=True, **pltargs)
 
       xmin=xmint
       mxtot=max(totdelays)
@@ -673,10 +671,10 @@ def plot_prepost_spread(predelays, axdelays, pltparams={}, ax=None, title='Axon 
       pax.axvline(mntotplt+mnstd, color='k', linestyle=":", linewidth=0.75)
      
       xmax=max([xmaxt, mxtot])*1.03
-#      df = pd.DataFrame({'pds':predelays,'tds': axdelays})
+#      df = pd.DataFrame({'pds':fixedels,'tds': axdelays})
       if isinstance(legends,list) and len(legends)==2: colnames=legends
       else: colnames=['OMMP','Pre']
-      df=pd.DataFrame(np.array([axdelays,predelays+pdadd]).T, columns=colnames)
+      df=pd.DataFrame(np.array([axdelays,fixedels+pdadd]).T, columns=colnames)
 #      dfpax = df.plot.barh(stacked = True, ax=ax, color=[[0.01,0.2,0.9],[0.8,0.2, 0.]], **pltargs);
       dfpax = df.plot.barh(stacked = True, ax=ax, color=[mplotlibcolors[0],mplotlibcolors[1]], **pltargs);
 # alterantively specify color using column names:  ax = df.plot.barh(color={"Pre": "red", "OMMP": "blue"})
@@ -690,7 +688,7 @@ def plot_prepost_spread(predelays, axdelays, pltparams={}, ax=None, title='Axon 
             xpos = 0
             
       pax.set_xlim([xmin, xmax])
-      pax.set_yticks(range(naxons))
+      pax.set_yticks(range(nax))
       pax.set_yticklabels(labels=labels, fontsize=14)
 #      dfpax.legend(['Pre-delay','Myel. delay'])
       dfpax.set(xlabel='τ [ms]', ylabel='Axons')
@@ -721,7 +719,7 @@ def jitter_tr(tr, trpjitt, list2list=True, mintr=10, minf=0):
         return np.clip(np.array(tr)*(1.+trpjitt*randn(len(tr))/100.), mintr, None)
   
 class SpikeTrains:
-  def __init__(self, spdata=[], tspan=1000, tr=50, ntrains=1, tunit='ms', jitter=0, trpjitt=0,  jnodes=None, td=0, reft=0, kg=1, do_sort=True):
+  def __init__(self, spksig=[], tspan=1000, tr=50, ntrains=1, tunit='ms', jitter=0, trpjitt=0,  jnodes=None, td=0, tref=0, kg=1, do_sort=True):
       """ tr inverse spike rate / ISI time interval in "tunit"s;
       """
       self.spikes=[] # Main format
@@ -730,31 +728,31 @@ class SpikeTrains:
       self.sptrains=[] # optional (see also for get_spike_train(s) to directly obtaining
       self.ntrains=None
 
-      if type(spdata) == str:
-        nspdata=[]
-        if spdata[:2]=='po':
-          items=spdata.split('_')
+      if type(spksig) == str:
+        nspksig=[]
+        if spksig[:2]=='po':
+          items=spksig.split('_')
           if len(items)>1: ntrs=int(items[1])
           else: ntrs=ntrains
           if len(items)>2: tr=float(items[2])
           else: tr=tr
           if items[0]=='pois':
             if np.isscalar(tr):
-               nspdata=[generate_rpoisson_spike_train(jitter_tr(tr, trpjitt), tspan, reft=reft, tunit=tunit) for _ in range(ntrs)]
+               nspksig=[generate_rpoisson_spike_train(jitter_tr(tr, trpjitt), tspan, tref=tref, tunit=tunit) for _ in range(ntrs)]
             else:
-               nspdata=[generate_rpoisson_spike_train(jitter_tr(tr1, trpjitt), tspan, reft=reft, tunit=tunit) for tr1 in tr]
-        elif spdata[:2]=='re':
+               nspksig=[generate_rpoisson_spike_train(jitter_tr(tr1, trpjitt), tspan, tref=tref, tunit=tunit) for tr1 in tr]
+        elif spksig[:2]=='re':
           if np.isscalar(tspan): tspan=(0,tspan)
-          if spdata=='regsync':
-            if np.isscalar(tr): nspdata= [np.arange(tspan[0],tspan[1], jitter_tr(tr,trpjitt)) for _ in range(ntrains)]
-            else: nspdata= [np.arange(tspan[0],tspan[1], jitter_tr(tr1, trpjitt)) for tr1 in tr]
+          if spksig=='regsync':
+            if np.isscalar(tr): nspksig= [np.arange(tspan[0],tspan[1], jitter_tr(tr,trpjitt)) for _ in range(ntrains)]
+            else: nspksig= [np.arange(tspan[0],tspan[1], jitter_tr(tr1, trpjitt)) for tr1 in tr]
           else:
-            if np.isscalar(tr): nspdata= [rand()*tr + np.arange(tspan[0],tspan[1], jitter_tr(tr, trpjitt)) for _ in range(ntrains)]
-            else: nspdata= [rand()*tr1 + np.arange(tspan[0],tspan[1], jitter_tr(tr1, trpjitt)) for tr1 in tr]
-          for inspd,nspd in enumerate(nspdata):
+            if np.isscalar(tr): nspksig= [rand()*tr + np.arange(tspan[0],tspan[1], jitter_tr(tr, trpjitt)) for _ in range(ntrains)]
+            else: nspksig= [rand()*tr1 + np.arange(tspan[0],tspan[1], jitter_tr(tr1, trpjitt)) for tr1 in tr]
+          for inspd,nspd in enumerate(nspksig):
               nspd+=inspd*td
-        elif spdata[:2]=='sy':
-          items=spdata.split('_')
+        elif spksig[:2]=='sy':
+          items=spksig.split('_')
           if len(items)>1: nsync=int(items[1])
           else: nsync=ntrains//2
           if len(items)>2: ntrs=int(items[2])
@@ -771,17 +769,17 @@ class SpikeTrains:
                   print('Number of trains is less than the number of synced trains (ntrains=%d nsync=%d)' % (ntrains, nsync))
                   print('Setting nsync to the number of trains!')
                   nsync=ntrs
-               nspdata=[generate_rpoisson_spike_train(tr, tspan, reft=reft, tunit=tunit)]*nsync
-#               nspdata=[generate_rpoisson_spike_train(jitter_tr(tr, trpjitt), tspan, reft=reft, tunit=tunit) for _ in range(nsync)]
+               nspksig=[generate_rpoisson_spike_train(tr, tspan, tref=tref, tunit=tunit)]*nsync
+#               nspksig=[generate_rpoisson_spike_train(jitter_tr(tr, trpjitt), tspan, tref=tref, tunit=tunit) for _ in range(nsync)]
                nremtr=ntrs-nsync # remaining unsynced trains
                if nremtr:
                  if np.isscalar(td):
                     td=[td]
                  ndelays=len(td)
-                 nspdata.extend([nspdata[irtr%nsync]+td[irtr%ndelays] for irtr in range(nremtr)])
-#                      nspdata.extend([generate_rpoisson_spike_train(tr, tspan, reft=reft, tunit=tunit) for _ in range(ntrd)])
-        elif 'std_' in spdata:
-          items=spdata.split('_')
+                 nspksig.extend([nspksig[irtr%nsync]+td[irtr%ndelays] for irtr in range(nremtr)])
+#                      nspksig.extend([generate_rpoisson_spike_train(tr, tspan, tref=tref, tunit=tunit) for _ in range(ntrd)])
+        elif 'std_' in spksig:
+          items=spksig.split('_')
           if len(items)>1: nsync=int(items[1])
           else: nsync=ntrains//2
           if len(items)>3: ntrs=int(items[3])
@@ -793,53 +791,53 @@ class SpikeTrains:
                tds=td
              elif np.isscalar(td):
                tds=list((np.arange(ntrains-nsync)+1)*td)
-          sptr=SpikeTrains('sync_%d' % nsync, tspan=tspan, tr=tr, ntrains=ntrs, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=tds, reft=reft, kg=kg, do_sort=do_sort)
-          nspdata=sptr.get_spike_trains()
-        elif spdata[:2]=='mi':
-          items=spdata.split('__')
-          sptr=SpikeTrains(items[1], tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, reft=reft, kg=kg, do_sort=do_sort)
+          sptr=SpikeTrains('sync_%d' % nsync, tspan=tspan, tr=tr, ntrains=ntrs, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=tds, tref=tref, kg=kg, do_sort=do_sort)
+          nspksig=sptr.get_spike_trains()
+        elif spksig[:2]=='mi':
+          items=spksig.split('__')
+          sptr=SpikeTrains(items[1], tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, tref=tref, kg=kg, do_sort=do_sort)
           for spdat1 in items[2:]:
-            sptr1=SpikeTrains(spdat1, tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, reft=reft, kg=kg, do_sort=do_sort)
+            sptr1=SpikeTrains(spdat1, tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, tref=tref, kg=kg, do_sort=do_sort)
             sptr.add(sptr1)
-          nspdata=sptr.get_spike_trains()
+          nspksig=sptr.get_spike_trains()
 
-        if nspdata:
-            self.__init__(nspdata, tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, reft=reft, do_sort=do_sort)
+        if nspksig:
+            self.__init__(nspksig, tspan=tspan, tr=tr, ntrains=ntrains, tunit=tunit, jitter=jitter, trpjitt=trpjitt, jnodes=jnodes, td=td, tref=tref, do_sort=do_sort)
 
             return
-      elif type(spdata) == list:
-          if len(spdata)==0:
+      elif type(spksig) == list:
+          if len(spksig)==0:
              self.ntrains=0
              tspan=0
-          elif type(spdata[0])==np.ndarray or type(spdata[0])==list:
-            self.ntrains=len(spdata)
-            for itr,ctrain in enumerate(spdata):
+          elif type(spksig[0])==np.ndarray or type(spksig[0])==list:
+            self.ntrains=len(spksig)
+            for itr,ctrain in enumerate(spksig):
                self.sptrains.append(ctrain)
                self.spikes.extend( [ [sptm,itr] for sptm in ctrain])
 #               self.sptimes.extend([sptm for sptm in ctrain])
-      elif isinstance(spdata, SpikeTrains):
-           self.spikes=list(spdata.spikes)
-           self.ntrains=spdata.ntrains
-      elif type(spdata) == np.ndarray:
-         if spdata.ndim==1:
-            nspikes=len(spdata)
+      elif isinstance(spksig, SpikeTrains):
+           self.spikes=list(spksig.spikes)
+           self.ntrains=spksig.ntrains
+      elif type(spksig) == np.ndarray:
+         if spksig.ndim==1:
+            nspikes=len(spksig)
             self.ntrains=1
             self.sptrains[itr]=ctrain
-            self.spikes=[[spt,0] for isp in spdata]
-#            self.sptimes=list(spdata)
-         elif spdata.ndim==2:
-            ntrains,nspikes=spdata.shape
+            self.spikes=[[spt,0] for isp in spksig]
+#            self.sptimes=list(spksig)
+         elif spksig.ndim==2:
+            ntrains,nspikes=spksig.shape
             self.ntrains=ntrains
             for itr in range(ntrains):
-               self.sptrains[itr]=list(spdata[itr])
-               self.spikes.extend([[spd,itr] for spd in spdata[itr]])
-#               self.sptimes.extend([spd for spd in spdata[itr]])
-         else:  # spdata.ndim>=3:
+               self.sptrains[itr]=list(spksig[itr])
+               self.spikes.extend([[spd,itr] for spd in spksig[itr]])
+#               self.sptimes.extend([spd for spd in spksig[itr]])
+         else:  # spksig.ndim>=3:
             print('Not implemented yet for nd-arrays.ndim > 2!')
-      elif have_pyspike and isinstance(spdata, pyspk.SpikeTrain):
+      elif have_pyspike and isinstance(spksig, pyspk.SpikeTrain):
            pass
       else:
-        print('UNRECOGNIZED Data type for spdata=', spdata)
+        print('UNRECOGNIZED Data type for spksig=', spksig)
         return None
 
       self.update_spikes()
@@ -997,7 +995,7 @@ class SpikeTrains:
         plt.ylabel('p(ISI)')
         plt.show()
        
-def generate_rpoisson_spike_train(tr, tspan, reft=0, tunit='ms'):
+def generate_rpoisson_spike_train(tr, tspan, tref=0, tunit='ms'):
     try:
       tmin=tspan[0]
       Tmax=tspan[1]
@@ -1005,133 +1003,133 @@ def generate_rpoisson_spike_train(tr, tspan, reft=0, tunit='ms'):
       tmin=0
       Tmax=tspan
     Tms=Tmax-tmin
-    nspikes1=int(Tms/(tr+reft))
+    nspikes1=int(Tms/(tr+tref))
     stdnsp=np.sqrt(nspikes1)
     nspikes1 += int(0.01*stdnsp)
-    vals=npr.exponential(tr, nspikes1)+reft
+    vals=npr.exponential(tr, nspikes1)+tref
     spt=np.cumsum(vals)+tmin
     spmx1=spt.max()
     while spmx1<Tmax:
        if verbose>2:
          print('Adding more spikes!')
        nspikes1 += int(2.*stdnsp)
-       vals = np.concatenate((vals,npr.exponential(tr, int(2*stdnsp))+reft))
+       vals = np.concatenate((vals,npr.exponential(tr, int(2*stdnsp))+tref))
        spt=np.cumsum(vals)
        spmx1=spt.max()
     return spt
 
        
-def generate_spike_train(tr, Tms, reft=0):
-    nspikes1=int(Tms/(tr+reft))
+def generate_spike_train(tr, Tms, tref=0):
+    nspikes1=int(Tms/(tr+tref))
     stdnsp=np.sqrt(nspikes1)
     nspikes1 += int(0.01*stdnsp)
-    vals=npr.exponential(tr, nspikes1)+reft
+    vals=npr.exponential(tr, nspikes1)+tref
     spt=np.cumsum(vals)
     spmx1=spt.max()
     while spmx1<Tms:
        if verbose>2:
          print('Adding more spikes!')
        nspikes1 += int(2.*stdnsp)
-       vals = np.concatenate((vals,npr.exponential(tr, int(2*stdnsp))+reft))
+       vals = np.concatenate((vals,npr.exponential(tr, int(2*stdnsp))+tref))
        spt=np.cumsum(vals)
        spmx1=spt.max()
     return spt
 
-def quick_generate_spiketrain(spdata, naxons, tspan=1000, tr=50, reft=0,jitter=0, trpjitt=0):
-# (self, spdata=[], tspan=None, tr=None, ntrains=1, tunit='ms', jitter=0, jnodes=None, td=0, reft=0, do_sort=True):
+def quick_generate_spiketrain(spksig, nax, tspan=1000, tr=50, tref=0,jitter=0, trpjitt=0):
+# (self, spksig=[], tspan=None, tr=None, ntrains=1, tunit='ms', jitter=0, jnodes=None, td=0, tref=0, do_sort=True):
      tr1=tr
-     if spdata=='case_syncall' or spdata=='syncall' or spdata=='sync':
-        nsynced=naxons
+     if spksig=='sync' or spksig=='syncall':
+        nsynced=nax
         tds=[]
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, td=tds, jitter=jitter, trpjitt=trpjitt)
-     elif spdata=='psync_half':
-        nsynced=naxons//2
-        spta=SpikeTrains('mix__sync__pois', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
-     elif spdata=='ksynctwo':
-        nsynced=naxons//2
-        spta=SpikeTrains('mix__sync__sync', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
-     elif 'ksync_' in spdata:
-        nkg=int(spdata.split('_')[1])
-        nsynced=int(np.round(naxons/nkg))
-        if naxons%nkg:
-           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (naxons, nkg))
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, td=tds, jitter=jitter, trpjitt=trpjitt)
+     elif spksig=='psync_half':
+        nsynced=nax//2
+        spta=SpikeTrains('mix__sync__pois', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
+     elif spksig=='ksynctwo':
+        nsynced=nax//2
+        spta=SpikeTrains('mix__sync__sync', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
+     elif 'ksync_' in spksig:
+        nkg=int(spksig.split('_')[1])
+        nsynced=int(np.round(nax/nkg))
+        if nax%nkg:
+           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (nax, nkg))
            print('WARNING: The new number of axons is %d!!!' % (nkg*nsynced))
-        spta=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+        spta=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
         for ikg in range(1,nkg):
-          spt1=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+          spt1=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
           spta.add(spt1)
-     elif 'msync_' in spdata:
-        syncstr=spdata.split('_')[1]
+     elif 'msync_' in spksig:
+        syncstr=spksig.split('_')[1]
         nkg=len(syncstr)
-        nsynced=int(np.round(naxons/nkg))
-        if naxons%nkg:
-           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (naxons, nkg))
+        nsynced=int(np.round(nax/nkg))
+        if nax%nkg:
+           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (nax, nkg))
            print('WARNING: The new number of axons is %d!!!' % (nkg*nsynced))
-        spta=SpikeTrains(msyncdict[syncstr[0]], tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+        spta=SpikeTrains(msyncdict[syncstr[0]], tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
         for ikg in range(1,nkg):
-          spt1=SpikeTrains(msyncdict[syncstr[ikg]], tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+          spt1=SpikeTrains(msyncdict[syncstr[ikg]], tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
           spta.add(spt1)
-     elif 'krates_' in spdata:
-        nkg=int(spdata.split('_')[1])
-        nsynced=int(np.round(naxons/nkg))
-        if naxons%nkg:
-           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (naxons, nkg))
+     elif 'krates_' in spksig:
+        nkg=int(spksig.split('_')[1])
+        nsynced=int(np.round(nax/nkg))
+        if nax%nkg:
+           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (nax, nkg))
            print('WARNING: The new number of axons is %d!!!' % (nkg*nsynced))
-        spta=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+        spta=SpikeTrains('sync', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
         for ikg in range(1,nkg):
-          spt1=SpikeTrains('sync', tr=(1+ikg)*tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+          spt1=SpikeTrains('sync', tr=(1+ikg)*tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
           spta.add(spt1)
-     elif 'kratespois_' in spdata:
-        nkg=int(spdata.split('_')[1])
-        nsynced=int(np.round(naxons/nkg))
-        if naxons%nkg:
-           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (naxons, nkg))
+     elif 'kratespois_' in spksig:
+        nkg=int(spksig.split('_')[1])
+        nsynced=int(np.round(nax/nkg))
+        if nax%nkg:
+           print('WARNING: The number of axons WILL change since %d axons cannot be split evenly in %d groups' % (nax, nkg))
            print('WARNING: The new number of axons is %d!!!' % (nkg*nsynced))
-        spta=SpikeTrains('pois', tr=tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+        spta=SpikeTrains('pois', tr=tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
 
                        
         for ikg in range(1,nkg):
-          spt1=SpikeTrains('pois', tr=(1+ikg)*tr1, ntrains=nsynced, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+          spt1=SpikeTrains('pois', tr=(1+ikg)*tr1, ntrains=nsynced, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
           spta.add(spt1)
-     elif spdata=='case_td1':
-        nsynced=naxons//2
-        tds=list((np.arange(naxons-nsynced)+1)*5.)
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, td=tds, trpjitt=trpjitt)
-     elif spdata=='case_td2':
-        nsynced=naxons//5
-        tds=list((np.arange(naxons-nsynced)+1)*3.)
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, td=tds, trpjitt=trpjitt)
-     elif spdata=='case_td3':
-        nsynced=naxons//2
-        tds=list((-np.arange(naxons-nsynced)+1)*5.)
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, td=tds, trpjitt=trpjitt)
-     elif 'case_syncj' in spdata:
-        jttr=float(spdata[10:])
+     elif spksig=='case_td1':
+        nsynced=nax//2
+        tds=list((np.arange(nax-nsynced)+1)*5.)
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, td=tds, trpjitt=trpjitt)
+     elif spksig=='case_td2':
+        nsynced=nax//5
+        tds=list((np.arange(nax-nsynced)+1)*3.)
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, td=tds, trpjitt=trpjitt)
+     elif spksig=='case_td3':
+        nsynced=nax//2
+        tds=list((-np.arange(nax-nsynced)+1)*5.)
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, td=tds, trpjitt=trpjitt)
+     elif 'case_syncj' in spksig:
+        jttr=float(spksig[10:])
         print("jttr=", jttr)
-        nsynced=naxons
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, jitter=jttr, trpjitt=trpjitt)
-     elif 'case_sync1' in spdata:
-        nsynced=naxons
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, jitter=0, trpjitt=trpjitt)
-     elif spdata=='case_pois1' or spdata=='pois':
-         spta=SpikeTrains('pois', tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
-     elif spdata=='case_trtd1':
+        nsynced=nax
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, jitter=jttr, trpjitt=trpjitt)
+     elif 'case_sync1' in spksig:
+        nsynced=nax
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, jitter=0, trpjitt=trpjitt)
+     elif spksig=='case_pois1' or spksig=='pois':
+         spta=SpikeTrains('pois', tr=tr1, ntrains=nax, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
+     elif spksig=='case_trtd1':
         nsynced=5
-     elif spdata=='case_trpois1':
-        nsynced=naxons//2
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons//2, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
-        sptb=SpikeTrains('pois', tr=(tr1/2), ntrains=naxons//2, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+     elif spksig=='case_trpois1':
+        nsynced=nax//2
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax//2, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
+        sptb=SpikeTrains('pois', tr=(tr1/2), ntrains=nax//2, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
         spta.__add__(sptb)
-     elif spdata=='case_syncpois1':
-        nsynced=naxons//2
-        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=naxons//2, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
-        sptb=SpikeTrains('pois', tr=tr1, ntrains=naxons//2, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+     elif spksig=='case_syncpois1':
+        nsynced=nax//2
+        spta=SpikeTrains('sync_%d' % nsynced, tr=tr1, ntrains=nax//2, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
+        sptb=SpikeTrains('pois', tr=tr1, ntrains=nax//2, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
         spta.__add__(sptb)
-     elif spdata=='case_pois2':
+     elif spksig=='case_pois2':
         tds=[] # tds were missing in this implementation!? Check!
-        spta=SpikeTrains('pois_sync_%d' % nsynced, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, td=tds, trpjitt=trpjitt)
+        spta=SpikeTrains('pois_sync_%d' % nsynced, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, td=tds, trpjitt=trpjitt)
      else:
-        spta=SpikeTrains(spdata, tr=tr1, ntrains=naxons, tspan=tspan, reft=reft, jitter=jitter, trpjitt=trpjitt)
+        spta=SpikeTrains(spksig, tr=tr1, ntrains=nax, tspan=tspan, tref=tref, jitter=jitter, trpjitt=trpjitt)
      return spta
    
 #font = {'family' : 'normal', 'weight' : 'bold', 'size'   : 16}
@@ -1461,9 +1459,9 @@ def viewresults(filename='allruns-nsig10-T100.npy'):
    plt.plot(mndiff-sddiff,'r')
    plt.show()
 
-def calculate_spikedistances_spread(prespikes, sspread, Tms, naxons, sprrfact=20, ndists=2, ndescomps=3, params=[]):
+def calculate_spikedistances_spread(prespikes, sspread, Tms, nax, sprrfact=20, ndists=2, ndescomps=3, params=[]):
   
-            comptrains=range(max([1,naxons-ndescomps]),naxons)
+            comptrains=range(max([1,nax-ndescomps]),nax)
             ncomptrains=len(comptrains)
             spikedistances=[[] for _ in range(ndists)]
             spikedistmats=[[] for _ in range(ndists)]
@@ -1556,7 +1554,7 @@ def update_spikedistances_spread(spikedistances, spikedistmats, comptrains, pres
 def robus_fit(xvals, yvals, params=None):
   pass
 
-def assign_normalized_predelays(nvals, kg, sigma, mnshift=None, normall=False):
+def assign_normalized_fixedels(nvals, kg, sigma, mnshift=None, normall=False):
   if kg > 1:
     if nvals%kg:
       raise ValueError('nvals=%d must be congruent with k=%d!' % (nvals, kg))
@@ -1564,7 +1562,7 @@ def assign_normalized_predelays(nvals, kg, sigma, mnshift=None, normall=False):
   if np.isscalar(sigma): sigmas=[sigma for _ in range(kg)]
   else: sigmas=sigma
   
-  predelays=[]
+  fixedels=[]
   print("sigmas=", sigmas)
 
   if sigmas:
@@ -1575,20 +1573,20 @@ def assign_normalized_predelays(nvals, kg, sigma, mnshift=None, normall=False):
       pred1=randn(k1)
       pred1=sigmas[ikg]*pred1/pred1.std()
       print("pred1.std()=", pred1.std())
-      predelays.append(pred1)
-    predelay=np.concatenate(predelays)
+      fixedels.append(pred1)
+    fixedel=np.concatenate(fixedels)
     if np.isscalar(sigma) and normall:
-      predelay = sigma * predelay/ predelay.std()
+      fixedel = sigma * fixedel/ fixedel.std()
   else:
-    predelay=randn(nvals)
-    predelay = sigma * predelay/ predelay.std()
+    fixedel=randn(nvals)
+    fixedel = sigma * fixedel/ fixedel.std()
     if mnshift is None:
       mnshift=sigma*(2 + rand()/100)
       
-  return mnshift + predelay - predelay.min()
+  return mnshift + fixedel - fixedel.min()
 
 def get_wbgroup_spread(atimes, grpinds, ddof=0):
-   naxons=len(atimes)
+   nax=len(atimes)
    mtot=atimes.mean()
    Swp = 0.
    Sbp = 0.
@@ -1596,7 +1594,7 @@ def get_wbgroup_spread(atimes, grpinds, ddof=0):
       kg=grpinds
       if kg==0:
         return atimes.std(), 0.
-      k1=naxons//kg
+      k1=nax//kg
       gmns=np.zeros(kg)
       for ikg in range(kg):
         atis=atimes[ikg*k1:(ikg+1)*k1]
@@ -1619,20 +1617,20 @@ def get_wbgroup_spread(atimes, grpinds, ddof=0):
 #       Swp += (ni-1) * vari
        Swp += ni * vari
        Sbp += ni *(mi-mtot)**2
-   return np.sqrt(Swp/(naxons-ddof)), np.sqrt(Sbp/(naxons-ddof))
+   return np.sqrt(Swp/(nax-ddof)), np.sqrt(Sbp/(nax-ddof))
 
 def get_rndsubsample_estimate_atime(atimes, ksub, ntrials=4000):
    stds=np.zeros(ntrials)
-   naxons=len(atimes)
+   nax=len(atimes)
    for itr in range(ntrials):
-      satimes=atimes[np.random.choice(naxons, ksub, False)]
+      satimes=atimes[np.random.choice(nax, ksub, False)]
       stds[itr]=satimes.std()
    return [stds.mean(), stds.std()/np.sqrt(ntrials)]
 
 def get_atime_spread2(atimes, pnsync=0):
-    naxons=len(atimes)
+    nax=len(atimes)
     sspread=np.std(atimes)
-    if pnsync>1 and pnsync<naxons:
+    if pnsync>1 and pnsync<nax:
       sspread1=np.std(atimes[:pnsync])
       sspread2=np.std(atimes[pnsync:])
       return [sspread, sspread1,sspread2] + get_rndsubsample_estimate_atime(atimes, pnsync)
@@ -1641,25 +1639,25 @@ def get_atime_spread2(atimes, pnsync=0):
 
 def get_save_params(saveresults):
     ''' Specify what results need to be saved with an integer!
-       Returns :  saveresults, nrepsave, nsrepsave, modelhistsavelist
+       Returns :  saveresults, nrepsave, nepochsave, modelhistsavelist
        saveresults 0-9; but IF saveresults > 9:
        savemodelhistory=saveresults//10
        saveresults=saveresults%10
        nrepsave=(savemodelhistory%10)
-       nsrepsave=savemodelhistory//10
+       nepochsave=savemodelhistory//10
        Example: saveresults=
     '''
     if saveresults>9:
       savemodelhistory=saveresults//10
       saveresults=saveresults%10
       nrepsave=(savemodelhistory%10)
-      nsrepsave=savemodelhistory//10
-      if nsrepsave>0:
+      nepochsave=savemodelhistory//10
+      if nepochsave>0:
          if nrepsave: modelhistsavelist=[[] for _ in range(nrepsave)]
          else: modelhistsavelist=[[]]
       else:
         modelhistsavelist=[]
-      return saveresults,nrepsave,nsrepsave,modelhistsavelist
+      return saveresults,nrepsave,nepochsave,modelhistsavelist
     else:
       return saveresults, 0, 0, []
 
