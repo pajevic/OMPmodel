@@ -1,5 +1,5 @@
-# ignore results scripts .txt and .out files
+# ignore files in logs/ and .out files
 __pycache__/
-logs/
 .gitignore
+logs/
 *.out
