@@ -1,8 +1,19 @@
 #!/usr/bin/env python
 
-# The code originally used to run OMP simulations and generate the results reported in the manuscript [1]. Use ompmodel.py for the latest implementation of the OMP model
+# The code originally used to run OMP simulations and generate the results reported in the manuscript [1]. These files are provided for replicating the results in this work. In the future use ompmodel.py for the latest implementation of the OMP model, that just provides an interface to running the model with user specified parameters.
 
 from omputils import *
+
+dpmodel_params = {'dpname': 'omp1', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm': 0.1, 'lama': 0.1}
+
+# if ntrains=0 assign it to be the same as nax
+signal_params = {'spksig': 'pois', 'Tesec': 10, 'tspan': [0,10000], 'taus': 100, 'ntrains': 0, 'tunit': 'ms', 'tref': 50, 'nax': 10, 'jitter': 0, 'pfjitt' : 0, 'pnsync': 0, 'kg' : 0, 'fixedel':'nrn_10'}
+
+defsaveresults=5  # saveresults=0: Nothing saved!  saveresults=1 (or True): save most of things 2: omit individual oligo timings 3: save only spread information and the used parameters 4: save only spread info (use only for large parameter explorations)
+run_params={'name': 'test0p1runs', 'solver':'ivp', 'tres':0.01, 'method': 'RK45', 'nreps': 1, 'nepochs': 10, 'nwarmup':1, 'randseed':-1, 'saver':  defsaveresults}
+
+prandtau0=0.05 # randomize initial taus for all axons around mean tau0; this was always fixed to 0.05
+fixedel_defprms={'rnd': [20], 'rng': [3], 'nrn': [5], 'none':[] }
 
 try:
   import pyspike as pyspk  #  to be used in future versions for feeding spikes into OMP model
@@ -20,8 +31,6 @@ verbose = 0 # non-zero values incrementaly increase verbosity of print-out repor
 vreport=False
 
 if verbose>3: ncalls=0
-
-defsaveresults=5  # saveresults=0: Nothing saved!  saveresults=1 (or True): save most of things 2: omit individual oligo timings 3: save only spread information and the used parameters 4: save only spread info (use only for large parameter explorations)
 
 savegmodelcallshistory=False
 saveindividualspreadcurves=False
@@ -42,17 +51,19 @@ results_dir, logs_dir = get_results_dir(return_log=True)
 if not os.path.exists(logs_dir): os.mkdir(logs_dir)
 
 codefile=sys.argv[0]
-refcodefile='vrefs/vref_9May2022_oligosimulator.py'
 
-if not os.path.exists(refcodefile):
-  if not os.path.exists('vrefs/'): os.mkdir('vrefs')
-  refcodefile='vrefs/vref_'+currentdate()+codefile
+if False: # ignore reference code; just save the whole code used for execution
+  refcodefile='vrefs/vref_1Apr2022ompsimulator.py'
   if not os.path.exists(refcodefile):
-    print('UPDATE REFFILE in the python code : refcodefile : Make it automatic in the future: ')
-    os.system('cp %s %s' % (codefile, refcodefile))
-    
-execcodeinfo=get_codeinfo(codefile, refcodefile)
+    if not os.path.exists('vrefs/'): os.mkdir('vrefs')
+    refcodefile='vrefs/vref_'+currentdate()+codefile
+    if not os.path.exists(refcodefile) and False: # 
+      print('Creating new reference file %s! Update it in the python code in the refcodefile=... line!') # Make this automatic in the future!
+      os.system('cp %s %s' % (codefile, refcodefile))
+else: refcodefile=''
 
+execcodeinfo=get_codeinfo(codefile, refcodefile)
+  
 if not (defsaveresults or savegmodelcallshistory or saveindividualspreadcurves):
   print('WARNING: You are not saving any results!!!')
   ans=input("Do you want to exit? ")
@@ -67,9 +78,6 @@ if savegmodelcallshistory:
   nmaxstorg=10000000
   gmodelcallshistory=np.zeros((nmaxstorg,5))
 
-defTesec=10
-defTms=1000*defTesec
-
 normalize_delays=0
 sprrfact=20  # factor to scaled the spread, to be plotted with other similarity measures  
 gather_all_spikes=False
@@ -77,7 +85,7 @@ gprogvars={}
 gprogvars['nbinsisi']=30
 gprogvars['mintisi']=0
 gprogvars['maxtisi']='tau0'
-gprogvars['maxtisi']='tr_9.5'
+gprogvars['maxtisi']='taus_9.5'
 gprogvars['displayfig']=0
 
 ddrprevtemp=-1
@@ -85,16 +93,6 @@ grunhelpers=[0,0,0,0,0,0]
 
 dmratemin=1e-12
 dmratemin_assign=1e-11
-
-dpmodel_params = {'dpname': 'oliga2', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm':1, 'lama': 0.1}
-
-# if ntrains=0 assign it to be the same as nax
-signal_params = {'spksig': 'pois', 'tspan': [0,defTms], 'tr': 100, 'ntrains': 0, 'tunit': 'ms', 'tref': 50, 'nax': 10, 'jitter': 0, 'trpjitt' : 0, 'pnsync': 0, 'kg' : 0, 'fixedel':'nrn_10'}
-
-run_params={'name': 'test0p1runs', 'solver':'ivp', 'Tesec': defTesec, 'tres':0.01, 'method': 'RK45', 'nreps': 1, 'nepochs': 10, 'nwarmup':1, 'randseed':-1, 'saver':  defsaveresults}
-
-fixedel_defprms={'rnd': [20], 'rng': [3], 'none':[] }
-
 
 if __name__ == '__main__':
 
@@ -137,28 +135,28 @@ if __name__ == '__main__':
     np.random.seed(rndseed)
     rnd.seed(rndseed+17)
 
-  Tesec=run_params['Tesec']
+  Tesec=signal_params['Tesec']
   Tms=1000*Tesec
   signal_params['tspan']=[0,Tms]
 
   if isinstance(gprogvars['maxtisi'], str):
-    if 'tr' in gprogvars['maxtisi']:
+    if 'taus' in gprogvars['maxtisi']:
        if '_' in gprogvars['maxtisi']:
          itms= gprogvars['maxtisi'].split('_')
-         gprogvars['maxtisi']=signal_params['tr']/float(itms[1])
+         gprogvars['maxtisi']=signal_params['taus']/float(itms[1])
          if verbose>5: print("maxtisi=", gprogvars['maxtisi'])
        else:
-         gprogvars['maxtisi']=signal_params['tr']
+         gprogvars['maxtisi']=signal_params['taus']
        
   def update_signal_params(sigp):
-      if 'tr' in sigp:
-        visi=sigp['tr']
+      if 'taus' in sigp:
+        visi=sigp['taus']
         if type(visi)==str:
             if visi[:3]=='rnd':
                v1,v2,v3=visi.split('_')
                mnv=float(v2)
                mxv=float(v3)
-               sigp['tr']=np.random.rand(sigp['ntrains'])*(mxv-mnv)+mnv
+               sigp['taus']=np.random.rand(sigp['ntrains'])*(mxv-mnv)+mnv
   #    return sigp
   
   def update_dpmodel_params(dpmp, sgpm):
@@ -233,7 +231,7 @@ if __name__ == '__main__':
   kg=signal_params['kg']
   pnsync = signal_params['pnsync']
   spksig = signal_params['spksig']
-  trpjitt = signal_params['trpjitt']
+  pfjitt = signal_params['pfjitt']
 
   if pnsync>0 or 'psync' in spksig: kg=2
   if 'ksync_' in spksig: kg=int(spksig.split('_')[1])
@@ -251,8 +249,7 @@ if __name__ == '__main__':
   gfixedels=np.zeros((nreps,nax))
   goligoinfo={'oevents': [[[] for i in range(nepochs)] for j in range(nreps)], 'orates': np.zeros((nreps,nepochs, nol)), 'odelays': None}
   
-  print("nepochs=", nepochs)
-  print("nreps=", nreps)
+  print("Running nreps=%d replicates, each having %d nepochs!" % (nreps, nepochs))
 
   genexp2=lambda x: np.random.exponential(2)
   
@@ -270,20 +267,19 @@ if __name__ == '__main__':
   aicA, bicA, cicA, maxfaktA, tmaxA = coeffs_from_release_params(taur, taud, Qa)
   maxvfunc=factor_impresp(tmaxA, Qa, taud, taur)
     
-  tr1=signal_params['tr']
+  taus1=signal_params['taus']
   gjitter=signal_params['jitter']
   
 # dmrateinit = \lambda_M N_A/\tau_s^2$   
-  dmrateinitpass=lamm*nax/tr1**2
+  dmrateinitpass=lamm*nax/taus1**2
   dmrateinitgiven=dpmodel_params['dmrateinit']
   
   if dmrateinitgiven is not None:
     dmrateinitpass = dmrateinitgiven
-  print("dmrateinitpass=", dmrateinitpass)
-  
-  if verbose>1 and dpmodel_params['dpname'] in ['iomp1','omp1']: 
-    print("dmrateinit=", dmrateinitgiven)
+  if verbose>1:
     print("dmrateinitpass=", dmrateinitpass)
+    if dpmodel_params['dpname'] in ['iomp1','omp1']: 
+      print("dmrateinit=", dmrateinitgiven)
   
   fsfunc=lambda x: fslin(x, otaumin, otaumax, otaunom)
   fsfuncprim=lambda x: fslinprim(x, otaumin, otaumax, otaunom)
@@ -428,7 +424,7 @@ if __name__ == '__main__':
         event_func=event_none
 #        mjac=jac_model3
     elif dpmname in ['omp1']: # passive model with lama myelfactor
-      print("Assigned initial dmrateinitpass=", dmrateinitpass)
+      if verbose>2: print("Assigned initial dmrateinitpass=", dmrateinitpass)
       y0A_nontau=[0, cicA, dmrateinitpass]
       if csolver in ['odeint']:
         keyboard('is this happening')
@@ -446,7 +442,7 @@ if __name__ == '__main__':
         DPmodel=dydt_model1
 
     retparams={}
-    tr1=sig_params['tr']
+    taus1=sig_params['taus']
     ntr=signal_params['ntrains']
     tref=signal_params['tref']
 
@@ -464,13 +460,12 @@ if __name__ == '__main__':
            
     fixedelspec=signal_params['fixedel']
     
-  #  signal_params = {'spksig': 'pois', 'tspan': [0,Tms], 'tr': 50, 'ntrains': 10, 'tunit': 'ms', 'tref': 0}
-  #  tr1=100
-  #  spta=generate_spike_train(tr1, Tms, tref=0)
-  #  spta=SpikeTrains('pois', tr=tr1, ntrains=nax, tspan=Tms, tref=tref)
+  #  signal_params = {'spksig': 'pois', 'tspan': [0,Tms], 'taus': 50, 'ntrains': 10, 'tunit': 'ms', 'tref': 0}
+  #  taus1=100
+  #  spta=generate_spike_train(taus1, Tms, tref=0)
+  #  spta=SpikeTrains('pois', taus=taus1, ntrains=nax, tspan=Tms, tref=tref)
   #  if type(spksig)==str and len(spksig)>3 and spdata[:4]=='case':
-    labels=None
-    prandtau0=0.05 # randomize initial taus for all axons around mean tau0
+  
     if nrepsave:
       axmathistrecord=np.zeros((2,nreps,nepochs,nol,nax))
     for irep in range(nreps):  # LOOP 1 (Offs 2)
@@ -515,14 +510,15 @@ if __name__ == '__main__':
        elif np.isscalar(fixedelspec):
             fixedels=fixedelspec*np.ones(nax)
          
-       if verbose>-1: print("FIXEDELS: irep=%d fixedels=" % irep, fixedels)
+       if verbose>2: print("Fixed delays: irep=%d fixedels=" % irep, fixedels)
        gfixedels[irep,:]=fixedels
        if lpnsync: sspreads=get_atime_spread2(fixedels+axondelays, lpnsync)
        else: sspreads=get_atime_spread_kgroups(fixedels+axondelays, kg=kg)
        
        pdelspread=get_atime_spread_kgroups(fixedels, kg=kg)
-       print("fixedel spread=", pdelspread)
-       print("Init spread =", sspreads)
+       if verbose>1:
+         print("fixedel spread=", pdelspread)
+         print("Init spread =", sspreads)
 
        if verbose>5:
          print("irep=", irep)
@@ -538,15 +534,14 @@ if __name__ == '__main__':
             isrep=isrepw-nwarmup
             if vreport:
               print("\n\nStarting new isrep with ncalls=",  ncalls)
-            if  isrep>=0 and isrep%10==9:
-               print( "tr1=", tr1, "taud=", taud, "nax=", nax, "nol=", nol )
+            if  verbose>2 and isrep>=0 and isrep%10==9:
+               print( "taus1=", taus1, "taud=", taud, "nax=", nax, "nol=", nol )
                print("\nisrep=%d of %d" % (isrep+1, nepochs))
 
             oligoevents=[[] for _ in range(nol)]
-# GET SPIKE TRAINS TO FEED into the chain
-# get the spike train for this repetition
-#            print("tr1=", tr1)
-            spta = quick_generate_spiketrain(spksig, nax, tspan=Tms, tr=tr1, tref=tref, trpjitt=trpjitt)
+
+# get the spike train for this repetition to be fed through the OC
+            spta = quick_generate_spiketrain(spksig, nax, tspan=Tms, taus=taus1, tref=tref, pfjitt=pfjitt)
             if False:
               spta.plot_spikes()
 #              keyboard('Check generated spikes spta.plot_spikes()')
@@ -630,11 +625,6 @@ if __name__ == '__main__':
                        if verbose>3: print('Oligoevent HAPPENED tev=', tev, tsp, iolig)
                        oligoevents[iolig].append(tev)
                        oligorate=len(oligoevents[iolig])/tev
-                       if verbose>5:
-                          print('OLIGO OLIGO OLIGO --->:\n'*20)
-                          print("oligorate=", oligorate)
-                          print("oligoevents[iolig']=", oligoevents[iolig])
-          
                        if verbose==5:
                           print('- - '*20)
                           print("tprev=", tprev)
@@ -834,7 +824,8 @@ if __name__ == '__main__':
   
   dummy1=[]
 
-  print("nrepsave=", nrepsave)
+  if verbose>2: print("nrepsave=", nrepsave)
+  
   if nrepsave>0: # and nepochsave==0
      if ioligrecord==0:
         hrecordarr=np.array([tthistrecord, yymean, yyse, yyhistrecord, yysehistrecord], dtype=object)
