@@ -606,7 +606,7 @@ if __name__ == '__main__':
           
                   while odestatus==1: # loop for integrating over all oligo-events between two spikes, or over all simultaneous spikes 
               #       sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, jac=mjac, dense_output=True, events=event_func)
-                     if verbose>4: print("INTEGRATING NOW between prev=%g and tsp=%g" % (tprev, tsp))
+                     if verbose>5: print("Integrating now between prev=%g and tsp=%g" % (tprev, tsp))
 #                     sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True, events=event_func)
                      sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True)
 #                     try:
@@ -677,7 +677,7 @@ if __name__ == '__main__':
           ####### integrate over the delta function (DIRAC handle neuronal spikes NEURON SPIKES
                   tprev=tsp
                   # integrating delta function(s) for the current spike
-                  if verbose>3:
+                  if verbose>6:
                     print('Integrating delta function(s) for inode=%d spike' % inode)
                   if dpmname=='omp1':  # integrate delta function(s) ; over "nspikes" for PASSIVE- slow change model; no saturation
                       Gfact=y0[0]
@@ -707,7 +707,7 @@ if __name__ == '__main__':
           #        postspikes.append([tsp+taudelays[iolig,inode], inode])
           #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ sudden-change MODELS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#
                   
-                  if verbose>1:
+                  if verbose>5:
                      print("Shifting the delay on postspikes delay=%g  inode=%d" % (y0[itau+inode], inode))
           
           # add delay for the next oligo:  # technically it should happen on subseqent spikes, but it doesn't really matter
@@ -742,11 +742,9 @@ if __name__ == '__main__':
                 retparams['rspiketrain']=prespikes
                 if verbose>1:
                     print("Concatenating the model solutions at iolig=%d irep=%d isrep=%d" % (iolig, irep, isrep))
-                    if verbose>3:
-                      print("The length should be equal to the number of spikes as it integrates till the last spike!!!")
-                      print("len(solst)=", len(solst))
-                      print("len(solsy)=", len(solsy))
-                    
+                    if verbose>4:
+                      print("Checking that the current lengths of t and y are equal, and equal to the number of spikes as it integrates till the last spike: len(solst)=%d len(solsy)=%d len(pspikes)=%d"% (len(solst), len(solsy), len(prespikes)))
+                      
                 if nrepsave>0:
                    tt=np.concatenate(solst)
                    yy=np.concatenate(solsy)
@@ -768,9 +766,6 @@ if __name__ == '__main__':
                         if verbose>3:
                           print("len(solst)=", len(solst))
                           print("len(solsy)=", len(solsy))
-                if verbose>4:
-                  print("Time for solving csolver %s =" % csolver, time.time()-t0)
-                  print("yy.max(0)=", yy.max(0))
           
             # END OF LOOP 3 ( loop along the OLs in the chain )
             if verbose>4: print('END OF LOOP3! Just finished the oligo chain loop for irep=%d isrep=%d ' % (irep, isrep))
@@ -810,8 +805,7 @@ if __name__ == '__main__':
        if savegmodelcallshistory:
          np.save('modelcallshistory-%d.npy' % irep, gmodelcallshistory)
          gmodelcallshistory[:]=0
-         
-       if verbose>4: print('^^^^^^^^^^^^ Finished the loop \n'*verbose)
+       if verbose>4: print('^^^^^^^^^^^^ Finished the LOOP 2!\n')
 # finished all the loops
 # END OF LOOP 1 ( loop along repeats! The FINAL LOOP)
 
@@ -823,8 +817,6 @@ if __name__ == '__main__':
   
   rparams=run_dp_learning(dpmodel_params, signal_params, run_params, plotit=False, params={})
   
-  dummy1=[]
-
   if verbose>2: print("nrepsave=", nrepsave)
   
   if nrepsave>0: # and nepochsave==0

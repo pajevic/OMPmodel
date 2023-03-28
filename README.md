@@ -21,7 +21,10 @@ After running :> generate_runs.p AppendixTable2left_nol2    (or, generate_runs.p
 
  For each of the tables in the Appendix modify the values of DefaultValues.txt for the listed parameters, to reproduce the results. Use the provided table that maps the variable names in the paper and in the code.
 
-The synchronization profiles are saved in the results/"runname"-results.npy. When using saver=5 only the basic information in a results dictionary (use np.load to load these results as a dictionary). 'tstdarr' containes the synchronization measure, saved as a numpy array with shape (nreps, nepochs, nol, ngroups), where ngroups is saved when using mixed signals. Instructions on using saver to generate model high temporal resolution histories of the OMP variables will be provided later (yielding enormous files), and will change in the new ompmodel.py distribution, which will use OMPmodel class.
+The synchronization profiles are saved in the numpy file results/"runname"-results.npy. When using saver=5 only the basic
+information will be saved. Use np.load(``filename'').tolist() to load the results file as a dictionary. The key 'tstdarr' containes the
+synchronization measure, $\sigma_\tau$, saved as a numpy array with shape (nreps, nepochs, nol, ngroups), where ngroups
+indicates the number of different mixed signals. Instructions on using saver to generate model high temporal resolution histories of the OMP variables will be provided later (yielding enormous files), and will change in the new ompmodel.py distribution, which will use OMPmodel class.
 
 ## References:
 

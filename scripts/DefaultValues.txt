@@ -19,12 +19,7 @@ taunom=50
 fixedel=nrn_5, nrn_10
 
 # signal params
-# signal type is specified with spksig:
-# (s, sync) - correlated/time-locked poisson; (i, indep, p, pois) - independent poisson; 
-# (r, regsync) : regular spiking correlated/time-locked; # (j, regindep) : regular spiking correlated/time-locked; 
-# for mixed signal use msync_xxyyz...  where x,y,z,... can be any of the one-letter abbreviations (s,i,r,j),
-# e.g. msync_ssssi, which was used in, used in Figure 4C.
-
+# signal type is specified with spksig string (see ompguide.pdf)
 spksig=sync
 Tesec=10
 nreps=4
