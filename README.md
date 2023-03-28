@@ -10,7 +10,7 @@ The current code can be used simply as a script. Make sure you have numpy, scipy
 
 ## Generating the scripts and simulation data/results
 
-Since a large number of runs have been saved we are only providing the scripts for running simulations, i.e., the tools to generate those scripts. To generate scripts for running all simulations use generate_runs.py and auxilary text file specifying the grid of values to be explored. In scripts/ directory we provide the template file (DefaultValues.txt) which can then be changed based on the Appendix Tables in the manuscript. We provide an example .txt file for generating runs in Appendix table 2 (left and right). For the table on the left only the runs for nol=2 are specified as nepochs depend on it.
+Since a large number of runs have been saved we are only providing the scripts for running simulations, i.e., the tools to generate those scripts. To generate scripts for running all simulations use generate_runs.py and auxilary text file specifying the grid of values to be explored. In scripts/ directory we provide the template file (DefaultValues.txt) which can then be changed based on the Appendix Tables in the manuscript. We provide an example .txt file for generating runs in Appendix table 2 (left and right). For the table on the left only the runs for nol=2 are specified, since nepochs depend on it.
 
 After running :> generate_runs.p AppendixTable2left_nol2    (or, generate_runs.py scripts/AppendixTable2left_nol2.txt ) the following files are created:
  AppendixTable2left_nol2-subminfo.npy  # saves a dictionary of parameter values used for each run
