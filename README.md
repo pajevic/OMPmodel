@@ -6,7 +6,7 @@ Python code implementing the OMP model described in Pajevic et al, "Oligodendroc
 
 ## Installation
 
-The current code can be used mainly as a script. Make sure you have numpy, scipy, and matplotlib installed, and that place ompsimulator.py and omputils.py in the same directory. Run test_runs.sh, which should produce the matching results to ones stored in results.
+The current code can be used simply as a script. Make sure you have numpy, scipy, and matplotlib installed, and that ompsimulator.py and omputils.py are placed in the same directory. Run test_runs.sh, which should produce the matching results to the ones already stored in results (with orig-results suffix).
 
 ## Generating the scripts and simulation data/results
 
