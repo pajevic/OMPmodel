@@ -123,7 +123,7 @@ Example 2:
 """
 ]
 
-msyncdict={'p':'pois','s':'sync'}
+msyncdict={'s':'sync', 'i': 'indep', 'p':'pois', 'r': 'regsync', 'j': 'regind'}
 
 pyvar2texdict={'lamh' : r'$\lambda_H$', 'lamm': r'$\lambda_M$', 'lama': r'$\lambda_A$', 'taug': r'$\tau_G$', 'taud': r'$\tau_d$', 'taud': r'$\tau_d$', 'nol':r'$N_O$', 'jitter': r'$\sigma_j$', 'nax': r'$N_A$', 'taus': r'$\tau_s$', 'fixedel' : r'$\sigma_D$', 'taumax' : r'$\tau_\mathrm{max}$', 'taumin' : r'$\tau_\mathrm{min}$', 'taunom' : r'$\tau_\mathrm{nom}$', 'tref' : '$t_R$', 'Tesec':'$T_e$', 'nreps':'$n_r$', 'nepochs':'$n_e$', 'pfjitt' : r'$\sigma_s$'}
 
@@ -734,13 +734,13 @@ class SpikeTrains:
 
       if type(spksig) == str:
         nspksig=[]
-        if spksig[:2]=='po':
+        if spksig[:2] in ['po', 'in']:
           items=spksig.split('_')
           if len(items)>1: ntrs=int(items[1])
           else: ntrs=ntrains
           if len(items)>2: taus=float(items[2])
           else: taus=taus
-          if items[0]=='pois':
+          if items[0] in ['pois', 'indep']:
             if np.isscalar(taus):
                nspksig=[generate_rpoisson_spike_train(jitter_taus(taus, pfjitt), tspan, tref=tref, tunit=tunit) for _ in range(ntrs)]
             else:
@@ -1574,7 +1574,6 @@ def assign_normalized_fixedels(nvals, kg, sigma, mnshift=None, normall=False):
     for ikg in range(kg):
       pred1=randn(k1)
       pred1=sigmas[ikg]*pred1/pred1.std()
-      print("pred1.std()=", pred1.std())
       fixedels.append(pred1)
     fixedel=np.concatenate(fixedels)
     if np.isscalar(sigma) and normall:

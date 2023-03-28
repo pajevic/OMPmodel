@@ -4,10 +4,9 @@
 
 from omputils import *
 
-dpmodel_params = {'dpname': 'omp1', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm': 0.1, 'lama': 0.1}
-
+dpmodel_params = {'dpname': 'omp1', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm': 0.1, 'lama': 0.1, 'fixedel': 'nrn_10'}
 # if ntrains=0 assign it to be the same as nax
-signal_params = {'spksig': 'pois', 'Tesec': 10, 'tspan': [0,10000], 'taus': 100, 'ntrains': 0, 'tunit': 'ms', 'tref': 50, 'nax': 10, 'jitter': 0, 'pfjitt' : 0, 'pnsync': 0, 'kg' : 0, 'fixedel':'nrn_10'}
+signal_params = {'spksig': 'pois', 'Tesec': 10, 'tspan': [0,10000], 'taus': 100, 'ntrains': 0, 'tunit': 'ms', 'tref': 50, 'nax': 10, 'jitter': 0, 'pfjitt' : 0, 'pnsync': 0, 'kg' : 0}
 
 defsaveresults=5  # saveresults=0: Nothing saved!  saveresults=1 (or True): save most of things 2: omit individual oligo timings 3: save only spread information and the used parameters 4: save only spread info (use only for large parameter explorations)
 run_params={'name': 'test0p1runs', 'solver':'ivp', 'tres':0.01, 'method': 'RK45', 'nreps': 1, 'nepochs': 10, 'nwarmup':1, 'randseed':-1, 'saver':  defsaveresults}
@@ -231,6 +230,8 @@ if __name__ == '__main__':
   kg=signal_params['kg']
   pnsync = signal_params['pnsync']
   spksig = signal_params['spksig']
+  if spksig in msyncdict:
+    spksig = msyncdict[spksig]
   pfjitt = signal_params['pfjitt']
 
   if pnsync>0 or 'psync' in spksig: kg=2
@@ -458,7 +459,7 @@ if __name__ == '__main__':
             lpnsync=nax//3
         print("lpnsync=", lpnsync)
            
-    fixedelspec=signal_params['fixedel']
+    fixedelspec=dpmodel_params['fixedel']
     
   #  signal_params = {'spksig': 'pois', 'tspan': [0,Tms], 'taus': 50, 'ntrains': 10, 'tunit': 'ms', 'tref': 0}
   #  taus1=100
@@ -855,7 +856,7 @@ if __name__ == '__main__':
        savedatadict['saveresults'] = saveresults
        savedatadict['tstdarr'] = tstdarr
        savedatadict['tstdinit'] = inittstdarr
-       savedatadict['fixedels'] = gfixedels
+       savedatadict['fixedel'] = gfixedels
        if saveresults>4:
          savedatadict['dpmodel_params'] = dpmodel_params
          savedatadict['signal_params'] = signal_params

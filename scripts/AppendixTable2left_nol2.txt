@@ -6,17 +6,17 @@ reference_code=none
 #dp model params
 dpname=omp1
 lamm=0.01,0.02,0.05,0.1
-lama=0.1,0.01
+lama=0.01,0.1,1
 lamh=0.000001
 nax=10
-nol=5
+nol=2
 taug=10,20,30
-taus=50,100,200
+taus=25,50,100,200
 taumax=100
 taumin=3
 taunom=50
 # fixed delay params: for "normalized random normal" use nrn_"sigma_D", e.g. nrn_5 for sigma_D=5 ms
-fixedel=nrn_5, nrn_10
+fixedel=nrn_5
 
 # signal params
 # signal type is specified with spksig:
@@ -28,8 +28,9 @@ fixedel=nrn_5, nrn_10
 spksig=sync
 Tesec=10
 nreps=4
-nepochs=100
-tref=0
+# Use separate files for nol and set nepochs = 500 / nol
+nepochs=250
+tref=0,30
 jitter=1,3,5
 pfjitt=0
 
