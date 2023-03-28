@@ -17,7 +17,7 @@ After running :> generate_runs.p AppendixTable2left_nol2    (or, generate_runs.p
  AppendixTable2left_nol2-params.npy    # saves the original code and the parameter grid used for this simulation set
  AppendixTable2left_nol2-1.swarm       # individual commands to be executed, either in parallel (using swarm utility or sequentually
 
- For most tables you will get more than 1000 runs, e.g., for the one on the right a grid of 6912 different runs will be created and they are chunked into individual submission files with maximum of 1000 lines (due to a limit of the number of parallel jobs to be submitted. Running "generate_runs.py AppendixTable2right" will divide scripts into seven files:  AppendixTable2right-1.swarm ...  AppendixTable2right-7.swarm.
+ For most tables you will get more than 1000 runs, e.g., for the one on the right a grid of 6912 different runs will be created and they are chunked into individual submission files with maximum of 1000 lines (due to a limit of the number of parallel jobs to be submitted on our NIH HPC Biowulf cluster). Running "generate_runs.py AppendixTable2right" will generate scripts divided into seven files:  AppendixTable2right-1.swarm ...  AppendixTable2right-7.swarm.
 
  For each of the tables in the Appendix modify the values of DefaultValues.txt for the listed parameters, to reproduce the results. Use the provided table that maps the variable names in the paper and in the code.
 
