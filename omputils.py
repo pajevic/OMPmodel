@@ -7,16 +7,16 @@ import numpy.random as npr
 from numpy.random import rand,randn,randint,choice
 from scipy.integrate import solve_ivp, odeint
 
+verbose=0
+mplotlibcolors=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+floateps=[10.**(fexp)*np.finfo(float).eps for fexp in range(10)]
+
 if 1:
   import matplotlib
   matplotlib.rcParams['font.size'] = 16
   matplotlib.rcParams['legend.fontsize'] = 12
   matplotlib.rc('xtick', labelsize=14)
   matplotlib.rc('ytick', labelsize=14) 
-
-mplotlibcolors=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-floateps=[10.**(fexp)*np.finfo(float).eps for fexp in range(10)]
-verbose=0
 
 def tryany(x):
    try:
@@ -39,22 +39,6 @@ def currentdate():
   from datetime import date, datetime
   return date.today().strftime("%d%b%Y")
 
-def keyboard(banner='keyboard def >>'):
-    ''' Function that mimics the matlab keyboard command '''
-    # use exception trick to pick up the current frame
-    try:
-        raise None
-    except:
-        frame = sys.exc_info()[2].tb_frame.f_back
-    print("# Use Ctrl-D or quit() to exit :) Start the local debugging!")
-    # evaluate commands in current namespace
-    namespace = frame.f_globals.copy()
-    namespace.update(frame.f_locals)
-    try:
-        code.interact(banner='*** KEYBOARD >> '+ banner, local=namespace)
-    except SystemExit:
-        return 
-
 def filter_eq_args(args):
     eqargs=[]
     oargs=[]
@@ -64,7 +48,11 @@ def filter_eq_args(args):
        else:
            oargs.append(carg)
     return eqargs, oargs
-
+  
+def lkeyboard(messg):
+  print('*** Local Keyboard not used (not needed anymore). Just broadcasting the message:')
+  print(messg)
+  
 def get_results_dir(username='pajevic',rzenv='RZHOME', return_log=False, incsep=True, verbose=0):
   rzenv=os.getenv(rzenv)
   if rzenv is None:
@@ -313,7 +301,7 @@ class OMDPmodel:
       dvb = - aicB * bicB * y[3] - (aicB + bicB)*y[4] # + c \delta(t)
       dratec = y[5]
       if dratec<1.e-35:
-         keyboard('dratec problem')
+         lkeyboard('dratec problem')
       ddr=0
       for iax in range(gnax):
          ctau=y[iax+itau]
@@ -479,7 +467,7 @@ def plot_lrn_curve_lactives(tcur, lastactivslist, actdecay, actrise, T=50, npoin
           ampfact+=ampa1
           ampas=np.exp(-tsncs/actdecay)*(1.-np.exp(-tsncs/actrise))
           ampas[tsncs<0.]=0.
-#          keyboard('tsncs ampas')
+#          lkeyboard('tsncs ampas')
           if plotall:
              plt.plot(tt, ampas,'k--', linewidth=1)
           ampfacts += ampas
@@ -942,7 +930,7 @@ class SpikeTrains:
       return self
       
   def jitterspikes(self, jittsigma):
-      if verbose>2:
+      if verbose>5:
         print("jittsigma=", jittsigma)
         print("self.ntotspikes=", self.ntotspikes)
         print("type(self.sptimes)=", type(self.sptimes))
@@ -1013,7 +1001,7 @@ def generate_rpoisson_spike_train(taus, tspan, tref=0, tunit='ms'):
     spmx1=spt.max()
     while spmx1<Tmax:
        if verbose>2:
-         print('Adding more spikes!')
+         print('Generating more spikes!')
        nspikes1 += int(2.*stdnsp)
        vals = np.concatenate((vals,npr.exponential(taus, int(2*stdnsp))+tref))
        spt=np.cumsum(vals)
@@ -1250,7 +1238,7 @@ def plotfig_any(figparams,  xprm='nsig', plotmode='outer'):
   if xprm=='nsig':
      xvals=np.linspace(0,1.,xprmval+1)
   else:
-     keyboard('Unknown xprm %s' % xprm)
+     lkeyboard('Unknown xprm %s' % xprm)
      
   fixedparams=[]
   fixedparamvals=[]
@@ -1276,7 +1264,7 @@ def plotfig_any(figparams,  xprm='nsig', plotmode='outer'):
           varparamvals.append(vprm)
           varparamslen.append(lenlist)
     else:
-        keyboard('For now vprm has to be a scalar or a list or None')
+        lkeyboard('For now vprm has to be a scalar or a list or None')
          
   ncurves=0
   nvparams=len(varparams)
@@ -1285,7 +1273,7 @@ def plotfig_any(figparams,  xprm='nsig', plotmode='outer'):
     if len(np.unique(varparamslen))==1:
        ncurves=varparamslen[0]
     else:
-      keyboard('For plotmode="same" lengths of vparams should be the same')
+      lkeyboard('For plotmode="same" lengths of vparams should be the same')
     pltvparams=np.array(varparamvals).T
   elif plotmode=='outer':
       ncurves=np.prod(varparamslen)
@@ -1428,7 +1416,7 @@ def plotfig_any(figparams,  xprm='nsig', plotmode='outer'):
           print('Found none or multiple files that match criterion:')
           print("Pattern=", filename)
           print("Found files:", files)
-          keyboard('Inspect files')
+          lkeyboard('Inspect files')
           
       lrndata, cprms, stprms, hlprms = mynpload(filename)
       diffs=lrndata[:,0,:] - lrndata[:,1,:]                                             
@@ -1452,7 +1440,7 @@ def plotfig_any(figparams,  xprm='nsig', plotmode='outer'):
 def viewresults(filename='allruns-nsig10-T100.npy'):
    lrndata, cprms, stprms, hlprms = mynpload(filename)
 #   lrndata = mynpload(filename)
-#   keyboard('aha')
+#   lkeyboard('aha')
    diffs=lrndata[:,0,:] - lrndata[:,1,:]                                             
    mndiff=diffs.mean(0)                                                    
    sddiff=diffs.std(0)                                                     
@@ -1491,7 +1479,7 @@ def calculate_spikedistances_spread(prespikes, sspread, Tms, nax, sprrfact=20, n
               try:
                  cspkdists = [pyspk.spike_distance(pyspktrains[0], pyspktrains[itrcomp],  interval=(0, Tmxd)) for itrcomp in comptrains]
               except:
-                 keyboard('Failed calculating cspdists ')
+                 lkeyboard('Failed calculating cspdists ')
 
               cspkdists.append(sspread/sprrfact)
               spikedistances[0].append(cspkdists)
@@ -1502,7 +1490,7 @@ def calculate_spikedistances_spread(prespikes, sspread, Tms, nax, sprrfact=20, n
                  cspkdists = [pyspk.isi_distance(pyspktrains[0], pyspktrains[itrcomp],  interval=(0, Tmxd)) for itrcomp in comptrains]
               except:
                  cspkdists = [pyspk.isi_distance(pyspktrains[0], pyspktrains[itrcomp],  interval=(0, Tmx)) for itrcomp in comptrains]
-                 keyboard('pyspk problem 2')
+                 lkeyboard('pyspk problem 2')
   
               cspkdists.append(0.)
               spikedistances[1].append(cspkdists)
@@ -1532,14 +1520,14 @@ def update_spikedistances_spread(spikedistances, spikedistmats, comptrains, pres
                    try:
                       cspkdists = [pyspk.spike_distance(pyspktrains[0], pyspktrains[itrcomp],  interval=(0, Tmxd)) for itrcomp in comptrains]
                    except:
-                      keyboard('pyspk problem 3')
+                      lkeyboard('pyspk problem 3')
                       cspkdists = [-0.1 for itrcomp in comptrains]
                    cspkdists.append(sspread/sprrfact)
                    spikedistances[0].append(cspkdists)
                    try:
                       cspkdists = [pyspk.isi_distance(pyspktrains[0], pyspktrains[itrcomp],  interval=(0, Tmxd)) for itrcomp in comptrains]
                    except:
-                      keyboard('pyspk problem 4')
+                      lkeyboard('pyspk problem 4')
                       cspkdists = [-0.1 for itrcomp in comptrains]
                    cspkdists.append(0.)
                    spikedistances[1].append(cspkdists)
@@ -1550,7 +1538,7 @@ def update_spikedistances_spread(spikedistances, spikedistmats, comptrains, pres
                    except:
                      spikedistmats[0] =np.zeros((len(pyspktrains), len(pyspktrains)))-1.
                      spikedistmats[1] =np.zeros((len(pyspktrains), len(pyspktrains)))-1.
-                     keyboard('   Problem with spikedistmatrices 2')
+                     lkeyboard('   Problem with spikedistmatrices 2')
 
             
 def robus_fit(xvals, yvals, params=None):
@@ -1565,7 +1553,7 @@ def assign_normalized_fixedels(nvals, kg, sigma, mnshift=None, normall=False):
   else: sigmas=sigma
   
   fixedels=[]
-  if verbose>2: print("sigmas=", sigmas)
+  if verbose>4: print("sigmas=", sigmas)
 
   if sigmas:
     k1 = nvals//kg
@@ -1638,30 +1626,86 @@ def get_atime_spread2(atimes, pnsync=0):
     else:
       return [sspread, None, None, None, None]
 
-def get_save_params(saveresults):
+def get_save_params(saverespec, adict=None, verbose=3):
     ''' Specify what results need to be saved with an integer!
-       Returns :  saveresults, nrepsave, nepochsave, modelhistsavelist
-       saveresults 0-9; but IF saveresults > 9:
-       savemodelhistory=saveresults//10
-       saveresults=saveresults%10
-       nrepsave=(savemodelhistory%10)
-       nepochsave=savemodelhistory//10
-       Example: saveresults=
+       Returns :  saveresults, nrepsave, epochsave, modelhistsavelist
+       if saverespec is integer then:
+         saverespec 0-9; but IF saverespec > 9:
+         savemodelhistory=saverespec//10
+         saverespec=saverespec%10
+         nrepsave=(savemodelhistory%10)
+         nepochsave=savemodelhistory//10
+         epochsave=[0, nepochsave]
+         Example: saverespec=525
+       if saverespec is string then:
+         split and try as integer but also use special characters:
+         'a' for all reps, or epochs (then needs 'nreps' and 'nepochs' in adict)
+         for epochs one can also choose range using 'r' as a separator: ##r##:
+         Example:
+              saver=5-7525 will set saveresults to 5, will save 2 replicates, and will save epochs 5 through 75, inclusive.
+         if string has two characters only then the first character is iolig step in the chain from which to record ... I know, it's getting too complicated!
+              saver=a25 ... saves OMP variable history all epochs for the first two replicates with saveresults=5
+              saver=aa5 ... saves OMP variable history for all epochs and replicates with saveresults=5
     '''
-    if saveresults>9:
-      savemodelhistory=saveresults//10
-      saveresults=saveresults%10
-      nrepsave=(savemodelhistory%10)
-      nepochsave=savemodelhistory//10
-      if nepochsave>0:
-         if nrepsave: modelhistsavelist=[[] for _ in range(nrepsave)]
-         else: modelhistsavelist=[[]]
+    if isinstance(saverespec,int):
+      if saverespec>9:
+        savemodelhistory=saverespec//10
+        saveresults=saverespec%10
+        nrepsave=(savemodelhistory%10)
+        nepochsave=savemodelhistory//10
+        epochsave=[0, nepochsave]
+        if nepochsave>0:
+           if nrepsave: modelhistsavelist=[[] for _ in range(nrepsave)]
+           else: modelhistsavelist=[[]]
+        else:
+          modelhistsavelist=[]
+        if verbose>3: print([saveresults,nrepsave,epochsave,modelhistsavelist])
+        return saveresults,nrepsave,epochsave,modelhistsavelist
       else:
-        modelhistsavelist=[]
-      return saveresults,nrepsave,nepochsave,modelhistsavelist
-    else:
-      return saveresults, 0, 0, []
-
+        return saverespec, 0, [0,0], []
+    elif isinstance(saverespec,str):
+      try:
+        svrspec=int(saverespec)
+        return get_save_params(svrspec, adict=adict)
+      except:
+        strchars=list(saverespec)
+        saveresults=int(strchars[-1])
+        try:
+          nrepsave=int(strchars[-2])
+        except:
+          if strchars[-2] == 'a':
+            nrepsave=int(adict['nreps'])
+          else:
+            raise ValueError("Only integers < 10 or 'a' are accepted for the nreps character (2nd from the last)")
+        if 'r' in strchars:
+          irngsep=strchars.index('r')
+          epstartstr=''.join(strchars[:irngsep])
+          if epstartstr: epstart=int(epstartstr)-1
+          else: epstart=0
+          ependstr=''.join(strchars[irngsep+1:-2])
+          if ependstr: epend=int(ependstr)
+          else: epend=int(adict['nepochs'])+1
+        else:
+          epstart=0
+          try:
+            epend=int(''.join(strchars[:-2]))
+          except:
+            if strchars[-2] == 'a':
+              epend=int(adict['nepochs'])
+            else:
+              raise ValueError("Improperly specified epochsave with saver=%s" % saverespec)
+        epochsave=[epstart, epend]
+        nepochsave=epend-epstart
+        if nepochsave>0:
+           if nrepsave: modelhistsavelist=[[] for _ in range(nrepsave)]
+           else: modelhistsavelist=[[]]
+        else:
+          modelhistsavelist=[]
+        if verbose>3: print([saveresults,nrepsave,epochsave,modelhistsavelist])
+        return saveresults,nrepsave,epochsave,modelhistsavelist
+    elif isinstance(saverespec,dict):
+      if verbose>3: print('Using dictionary with saver=', saverespec['saver'])
+      return get_save_params(saverespec['saver'], adict=saverespec)
 
 
 

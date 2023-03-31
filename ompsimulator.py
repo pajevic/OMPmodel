@@ -4,15 +4,18 @@
 
 from omputils import *
 
-dpmodel_params = {'dpname': 'omp1', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm': 0.1, 'lama': 0.1, 'fixedel': 'nrn_10'}
+# Default values of parameters
+dpmodel_params = {'dpname': 'omp1', 'tau0': 'taunom', 'taunom': 50, 'taumin': 3, 'taumax':100, 'dmrateinit': None, 'lamh': 1.e-6, 'Qa': 1, 'taug': 30, 'taud': 'taug', 'taur': 'taug', 'nax': 10, 'nol': 5,  'omat': None, 'lamm': 0.1, 'lama': 0.1, 'fixedel': 'nrn_5'}
 # if ntrains=0 assign it to be the same as nax
 signal_params = {'spksig': 'pois', 'Tesec': 10, 'tspan': [0,10000], 'taus': 100, 'ntrains': 0, 'tunit': 'ms', 'tref': 50, 'nax': 10, 'jitter': 0, 'pfjitt' : 0, 'pnsync': 0, 'kg' : 0}
 
-defsaveresults=5  # saveresults=0: Nothing saved!  saveresults=1 (or True): save most of things 2: omit individual oligo timings 3: save only spread information and the used parameters 4: save only spread info (use only for large parameter explorations)
-run_params={'name': 'test0p1runs', 'solver':'ivp', 'tres':0.01, 'method': 'RK45', 'nreps': 1, 'nepochs': 10, 'nwarmup':1, 'randseed':-1, 'saver':  defsaveresults}
+defsaveresults=5  # defines saveresults/"saver=" variables! saver=0: Nothing saved!  saver=1 (or True): save most of things, but not fine-grained time course of the fast-variables (with resolution specified with tres -- see below; 2: omit individual oligo (not available in this version 3: save only spread information and the used parameters 4: save only spread info (use only for large parameter explorations 5: save also used parameters; If saver is multidigit, then the last digit is saver, the second to last specifies the replicate to be saved, -- this is temporary; new versions in ompmodel.py will have a simpler and a more user friendly selection of the collected output. 
+
+run_params={'name': 'test0p1runs', 'solver':'ivp', 'tres':0.01, 'method': 'RK45', 'nreps': 1, 'nepochs': 10, 'nwarmup':1, 'randseed':-1, 'saver':  defsaveresults, 'olrec': 0, 'arrayhist': True}
 
 prandtau0=0.05 # randomize initial taus for all axons around mean tau0; this was always fixed to 0.05
 fixedel_defprms={'rnd': [20], 'rng': [3], 'nrn': [5], 'none':[] }
+uselogfiles=False
 
 try:
   import pyspike as pyspk  #  to be used in future versions for feeding spikes into OMP model
@@ -26,8 +29,7 @@ try:
 except:
   have_elephant=False
 
-verbose = 0 # non-zero values incrementaly increase verbosity of print-out reports
-vreport=False
+# verbose = 0 # non-zero values incrementaly increase verbosity of print-out reports. Set default verbose in omputils.py instead and change it for ompsimulator as the first argument!
 
 if verbose>3: ncalls=0
 
@@ -36,7 +38,10 @@ saveindividualspreadcurves=False
 
 nrecordaver=20
 savematrixhistory=True
-
+# save the collected history of the omp variables in a different directory, due to potentially very large files
+# user saver= flag to select only particular epochs / replicates to save (see omputils get_save_params for more details)
+# change this in the new versions to a simpler way of specifying the output to be saved
+varhistory_dir='hrecs/'
 yyhistrecord=[]
 yysehistrecord=[]
 yymean=[]
@@ -45,9 +50,12 @@ yyfirst=[]
 yyfirstse=[]
 tthistrecord=[]
 
-results_dir, logs_dir = get_results_dir(return_log=True)
-
-if not os.path.exists(logs_dir): os.mkdir(logs_dir)
+if uselogfiles:
+  results_dir, logs_dir = get_results_dir(return_log=True)
+  if not os.path.exists(logs_dir): os.mkdir(logs_dir)
+else:
+  results_dir = get_results_dir(return_log=False)
+  logs_dir = ''
 
 codefile=sys.argv[0]
 
@@ -91,7 +99,7 @@ ddrprevtemp=-1
 grunhelpers=[0,0,0,0,0,0]
 
 dmratemin=1e-12
-dmratemin_assign=1e-11
+dmratemin_assign=5e-12
 
 if __name__ == '__main__':
 
@@ -126,7 +134,6 @@ if __name__ == '__main__':
   if run_params['randseed']>2:
     np.random.seed(run_params['randseed'])
     rnd.seed(run_params['randseed']*2)
-#    keyboard('setting random seed')
   else:            
     rndseed=9057
     rndseed=int(time.time()%10000)
@@ -184,13 +191,20 @@ if __name__ == '__main__':
   nreps=run_params['nreps']
   nepochs=run_params['nepochs']
   nwarmup=run_params['nwarmup']
+  ioligrecord=run_params['olrec']
+  arrayhist=run_params['arrayhist'] # to save OMP dynamics history in continous time. If False saves it into list of lists (chunks), each chunk being a responses to a single spike
 
   # use saver to control what needs to be saved
-  saveresults,nrepsave,nepochsave,modelhistories=get_save_params(run_params['saver'])
-  if nepochsave: ioligrecord = 0
-  else: ioligrecord = nrepsave - 1
+#  saveresults,nrepsave,epochsave,modelhistories=get_save_params(run_params['saver'])
+  saveresults,nrepsave,epochsave,modelhistories=get_save_params(run_params)
+  nepochsave=epochsave[1]-epochsave[0]
+  if verbose>4:
+    print('saveresults,nrepsave,epochsave,modelhistories=')
+    print(saveresults,nrepsave,epochsave,modelhistories)
 
-  flog=open(logs_dir + '%s-runlogs.log' % run_params['name'], 'a')
+  if uselogfiles:
+    flog=open(logs_dir + '%s-runlogs.log' % run_params['name'], 'a')
+    
   logmaxs=[1000,50,5000,100]
   logcounts=[0,0,0,0]
   
@@ -312,9 +326,9 @@ if __name__ == '__main__':
       if omat is None:
         ddr = dmrate*lamh*(otaunom-y[itau:itau+gnax].mean())
         if dmrate<dmratemin:
-           if logcounts[0]< logmaxs[0]:
-              if verbose>2: print('#%d dmrate problem!!!!!  dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp, ddr))
-              logcounts[0] +=1
+           logcounts[0] +=1
+           if verbose>1: print('#%d dmrate problem!!!!!  dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp, ddr))
+           if uselogfiles and ( logcounts[0]< logmaxs[0]):
               print('#%d: dmrate problem dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp,ddr), file=flog)
            dmrate=dmratemin_assign
         for iax in range(gnax):
@@ -349,8 +363,8 @@ if __name__ == '__main__':
         meantau=y[itau:itau+gnax].mean()
         ddr = dmrate*lamh*(otaunom-meantau)
         if dmrate<dmratemin:
-           if logcounts[0]< logmaxs[0]:
-              print('#%d dmrate problem!!!!!  dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp, ddr))
+           if verbose: print('#%d dmrate problem!!!!!  dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp, ddr))
+           if uselogfiles and ( logcounts[0]< logmaxs[0]):
               logcounts[0] +=1
               print('#%d: dmrate problem dmrate=%g ddrprevtemp=%g ddr=%g' % (logcounts[0], dmrate, ddrprevtemp,ddr), file=flog)
            dmrate=dmratemin_assign
@@ -418,7 +432,6 @@ if __name__ == '__main__':
     if dpmname=='iomp1':
       y0A_nontau=[0, cicA, dmrateinitpass]
       if csolver in ['odeint']:
-        keyboard('is this happening')
         DPmodel=lambda y,t: dydt_oligo_passive_diracmyelination(t,y)
       else:
         DPmodel=dydt_oligo_passive_diracmyelination
@@ -428,7 +441,7 @@ if __name__ == '__main__':
       if verbose>2: print("Assigned initial dmrateinitpass=", dmrateinitpass)
       y0A_nontau=[0, cicA, dmrateinitpass]
       if csolver in ['odeint']:
-        keyboard('is this happening')
+        lkeyboard('is this happening')
         DPmodel=lambda y,t: dydt_oligo_passive(t,y)
       else:
         DPmodel=dydt_oligo_passive
@@ -527,17 +540,14 @@ if __name__ == '__main__':
          print("sspreads=", sspreads)
          print("pdelspread[:kg-4]=", pdelspread[:kg+2])
          print("sspreads-4=", sspreads[:kg+2])
-#       keyboard('check the spread')
 
        inittstdarr[irep,:]=sspreads
 
-       for isrepw in range(nepochs+nwarmup):  # LOOP 2 (creates a new set of signals, but keeps already learned delays and dmrate) Offs 5
-            isrep=isrepw-nwarmup
-            if vreport:
-              print("\n\nStarting new isrep with ncalls=",  ncalls)
-            if  verbose>2 and isrep>=0 and isrep%10==9:
+       for iepochw in range(nepochs+nwarmup):  # LOOP 2 (creates a new set of signals, but keeps already learned delays and dmrate) Offs 5
+            iepoch=iepochw-nwarmup
+            if  verbose>2 and iepoch>=0 and iepoch%10==9:
                print( "taus1=", taus1, "taud=", taud, "nax=", nax, "nol=", nol )
-               print("\nisrep=%d of %d" % (isrep+1, nepochs))
+               print("\niepoch=%d of %d" % (iepoch+1, nepochs))
 
             oligoevents=[[] for _ in range(nol)]
 
@@ -545,12 +555,9 @@ if __name__ == '__main__':
             spta = quick_generate_spiketrain(spksig, nax, tspan=Tms, taus=taus1, tref=tref, pfjitt=pfjitt)
             if False:
               spta.plot_spikes()
-#              keyboard('Check generated spikes spta.plot_spikes()')
-#            keyboard('check train')
 
             if gjitter:
               spta.jitterspikes(gjitter)
-          #    plt.figure()
 
             ntotspikes = len(spta.spikes)
             retparams['ntotspikes']=ntotspikes
@@ -583,7 +590,7 @@ if __name__ == '__main__':
                    axondelays=tau0*alltaus/alltaus.mean()
                    if (min(axondelays)<taumin) or (max(axondelays)>taumax):
                       raise ValueError('exceeed tau range')
-                      keyboard('exceeed tau range')
+                      lkeyboard('exceeed tau range')
                       
                 # initialize the lists for collecting solutions for a given oligodendrocyte in the chain
                 solst=[]
@@ -592,50 +599,29 @@ if __name__ == '__main__':
                   tsp=spk1[0]
                   inode=spk1[1]
                   if verbose>6: print("Starting with y0=", y0[itau+inode])
-              #    nptint=int(np.round((tsp-tprev)/tres))
-              #    t1 = np.linspace(tprev, tsp, nptint)
-              #    y1 = odeint(DPmodel, y0, t1)
                   t1spike=[]
                   if verbose>5: print('*** NEW SPIKE ***'*5)
                   if (tprev + floateps[1]) >= tsp:
-                    if verbose>3:
-                       print('******* REPEATED SPIKE !!! '*50, tsp, tprev, tsp-tprev)
+                    if verbose>1: print('******* REPEATED SPIKE !!! '*50, tsp, tprev, tsp-tprev)
                     odestatus=2
                   else:
                     odestatus=1
           
                   while odestatus==1: # loop for integrating over all oligo-events between two spikes, or over all simultaneous spikes 
-              #       sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, jac=mjac, dense_output=True, events=event_func)
                      if verbose>5: print("Integrating now between prev=%g and tsp=%g" % (tprev, tsp))
-#                     sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True, events=event_func)
                      sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True)
-#                     try:
- #                    except:
- #                      print('sol1 = solve_ivp(DPmodel, (tprev, tsp), y0, method=odemethod, dense_output=True, events=event_func)')
- #                      print('FAILED solve_ivp')
- #                      keyboard('FAILED solve_ivp: check DPmodel y0 ')
                      odestatus=sol1.status
                      
-                     if odestatus == 1: # OLIGO-SPIKE : Oligoevent was hit
+                     if odestatus == 1: # OLIGO-SPIKE : Oligoevent was hit // Not used for passive models
                        passivemodels=['iomp1', 'omp1', 'sync1']
                        if dpmname in passivemodels:
                           print('There should never be an oligoevent in passive models', passivemodels)
-                          keyboard('Inspect! GOT oligoevent in passive ')
+                          lkeyboard('Inspect! GOT oligoevent in passive ')
 
                        tev=sol1.t_events[0][0]
                        if verbose>3: print('Oligoevent HAPPENED tev=', tev, tsp, iolig)
                        oligoevents[iolig].append(tev)
                        oligorate=len(oligoevents[iolig])/tev
-                       if verbose==5:
-                          print('- - '*20)
-                          print("tprev=", tprev)
-                          print("tsp=", tsp)
-                          print("tev=", tev)
-                       if tprev>=tev:
-                         print("tprev=", tprev)
-                         print("tev=", tev)
-                         keyboard('Deal breaker: tprev >= tev')
-          
                        nptsint=int(np.round((tev-tprev)/tres))+2
                        if verbose>5:
                           print("ASSIGNING AT EVENT 2 tprev=%g tev=%g" % (tprev, tev))
@@ -644,7 +630,7 @@ if __name__ == '__main__':
                        y1=sol1.sol(t1).T
                        tprev=tev
                        if verbose>3:
-                         print("BEFORE OLIG isrep=", isrep)
+                         print("BEFORE OLIG iepoch=", iepoch)
                          print("Appending results iolig=", iolig)
                          print("len(t1)=", len(t1))
                          print("len(y1)=", len(y1))
@@ -718,9 +704,9 @@ if __name__ == '__main__':
           
   # FINISHED PROCESSING OLIGODENDROCYTES in THE CHAIN
   # USE NOW y0B in pre-loop ; save what you learned in this loop for: dmrateinit=y0[itau-1]
-                if verbose: print('Finished processing olig#%d (r#=%d sr#=%d)' % (iolig+1, irep+1, isrep+1))
+                if verbose: print('Finished processing olig#%d (r#=%d sr#=%d)' % (iolig+1, irep+1, iepoch+1))
                 y0B_nonax[itau-1]=y0[itau-1] # preserved learned dmrate for the next step (even for warmup run)
-                if isrep>=0: # save oligodelays, oligomfactors state for the next sub-repetiton; update axondelays and ttimes/not used anymore, sync-spread measure, as well as prepare postspikes as the next prespikes
+                if iepoch>=0: # save oligodelays, oligomfactors state for the next sub-repetiton; update axondelays and ttimes/not used anymore, sync-spread measure, as well as prepare postspikes as the next prespikes
                   oligodelays[iolig,:]=y0[itau:(nax+itau)]
                   if dpmname in ['oliga2', 'omp1']:
                       oligomfactors[iolig,:]=y0[(nax + itau):]
@@ -731,7 +717,7 @@ if __name__ == '__main__':
 
                   if pnsync: sspreads=get_atime_spread2(fixedels+axondelays, pnsync)
                   else: sspreads=get_atime_spread_kgroups(fixedels+axondelays, kg=kg)
-                  tstdarr[irep,isrep,iolig,:]=sspreads
+                  tstdarr[irep,iepoch,iolig,:]=sspreads
                   
                   prespikes=post2prespikes(postspikes)
 
@@ -741,34 +727,33 @@ if __name__ == '__main__':
 
                 retparams['rspiketrain']=prespikes
                 if verbose>1:
-                    print("Concatenating the model solutions at iolig=%d irep=%d isrep=%d" % (iolig, irep, isrep))
+                    print("Concatenating the model solutions at iolig=%d irep=%d iepoch=%d" % (iolig, irep, iepoch))
                     if verbose>4:
                       print("Checking that the current lengths of t and y are equal, and equal to the number of spikes as it integrates till the last spike: len(solst)=%d len(solsy)=%d len(pspikes)=%d"% (len(solst), len(solsy), len(prespikes)))
                       
-                if nrepsave>0:
-                   tt=np.concatenate(solst)
-                   yy=np.concatenate(solsy)
                 if nrepsave:
+                  tt=np.concatenate(solst)
+                  yy=np.concatenate(solsy)
                   if ioligrecord>0 and iolig==0:
-                     yyfirst[irep].append(yy.mean(0))
-                     yyfirstse[irep].append(yy.std(0)/np.sqrt(yy.shape[0]))
+                    yyfirst[irep].append(yy.mean(0))
+                    yyfirstse[irep].append(yy.std(0)/np.sqrt(yy.shape[0]))
                   if iolig == ioligrecord:
-                   yyrecord=yy[-nrecordaver:,:].mean(0)
-                   yyrecse=yy[-nrecordaver:].std(0)/np.sqrt(nrecordaver)
-                   tthistrecord[irep].append(tt[-nrecordaver:].mean())
-                   yyhistrecord[irep].append(yyrecord)
-                   yysehistrecord[irep].append(yyrecse)
-                   yymean[irep].append(yy.mean(0))
-                   yyse[irep].append(yy.std(0)/np.sqrt(yy.shape[0]))
-                   if modelhistories and (irep<nrepsave) and (isrep>=0) and (isrep<nepochsave):
-                        print('Adding solution to model histories (irep=%d isrep=%d)' % (irep, isrep))
-                        modelhistories[irep].append([solst, solsy])
-                        if verbose>3:
-                          print("len(solst)=", len(solst))
-                          print("len(solsy)=", len(solsy))
-          
+                    yyrecord=yy[-nrecordaver:,:].mean(0)
+                    yyrecse=yy[-nrecordaver:].std(0)/np.sqrt(nrecordaver)
+                    tthistrecord[irep].append(tt[-nrecordaver:].mean())
+                    yyhistrecord[irep].append(yyrecord)
+                    yysehistrecord[irep].append(yyrecse)
+                    yymean[irep].append(yy.mean(0))
+                    yyse[irep].append(yy.std(0)/np.sqrt(yy.shape[0]))
+                    if modelhistories and (irep<nrepsave) and (iepoch>=epochsave[0]) and (iepoch<epochsave[1]):
+                        if verbose: print('Adding solution to model histories (irep=%d iepoch=%d)' % (irep, iepoch))
+                        if arrayhist:
+                          modelhistories[irep].append([tt, yy])
+                        else:
+                          modelhistories[irep].append([solst, solsy])
+                          
             # END OF LOOP 3 ( loop along the OLs in the chain )
-            if verbose>4: print('END OF LOOP3! Just finished the oligo chain loop for irep=%d isrep=%d ' % (irep, isrep))
+            if verbose>4: print('END OF LOOP3! Just finished the oligo chain loop for irep=%d iepoch=%d ' % (irep, iepoch))
 
             if False:
                 retparams['prespikes']=prespikes
@@ -776,56 +761,62 @@ if __name__ == '__main__':
                 retparams['t']=tt
                 retparams['y']=yy
 
-            if isrep>=0: # save oligoevents and orates
-               goligoinfo['oevents'][irep][isrep]=oligoevents
-               goligoinfo['orates'][irep, isrep, :]=oligorates
+            if iepoch>=0: # save oligoevents and orates
+               goligoinfo['oevents'][irep][iepoch]=oligoevents
+               goligoinfo['orates'][irep, iepoch, :]=oligorates
   
             spread2=np.std(axondelays+fixedels)
             if False:
-#            keyboard('check tt yy spread2 spreadc1')
                print('spreadc1=[sprrfact*spikedistances[0][ic][5] for ic in range(nol+1)]')
                spreadc1=[sprrfact*spikedistances[0][ic][-1] for ic in range(nol+1)]
                if not np.allclose(spreadc1[-1], spread2):
                  print("spreadc1=", spreadc1)
                  print("spread2=", spread2)
-                 keyboard('what?')
+                 lkeyboard('check this?')
 
-
-#   allcurves not used anymore #            allcurves[irep,:,isrep]=spreadc1
+#   allcurves not used anymore #            allcurves[irep,:,iepoch]=spreadc1
             if nrepsave and savematrixhistory:
-               axmathistrecord[0, irep, isrep, :, :] = oligodelays
-               axmathistrecord[1, irep, isrep, :, :] = oligomfactors
-            if isrep>=0: # save oligoevents and orates
-               gaxondelays[irep,isrep,:]=axondelays
-            if saveindividualspreadcurves:
-               np.savetxt(results_dir + 'spreadcrvs/%s-distsLoop%d-%d.txt' % (run_params['name'], irep,isrep), spreadc1)
+               axmathistrecord[0, irep, iepoch, :, :] = oligodelays
+               axmathistrecord[1, irep, iepoch, :, :] = oligomfactors
+            if iepoch>=0: # keep track axondelays
+               gaxondelays[irep,iepoch,:]=axondelays
+            if saveindividualspreadcurves: # not used anymore
+               np.savetxt(results_dir + 'spreadcrvs/%s-distsLoop%d-%d.txt' % (run_params['name'], irep,iepoch), spreadc1)
   
 # END OF LOOP 2 ( loop along sub-repeats! Only the signal changes statistically)
-       if verbose>3: print('END OF LOOP2! Just finished isreps for irep=', irep)
+       if verbose>3: print('END OF LOOP2! Just finished iepochs for irep=', irep)
        if savegmodelcallshistory:
          np.save('modelcallshistory-%d.npy' % irep, gmodelcallshistory)
          gmodelcallshistory[:]=0
        if verbose>4: print('^^^^^^^^^^^^ Finished the LOOP 2!\n')
 # finished all the loops
 # END OF LOOP 1 ( loop along repeats! The FINAL LOOP)
-
-    if verbose>3: print('END OF LOOP1, the Final Loop : Done!')
+    if verbose>2: print('END OF LOOP1, the Final Loop : Done!')
     if modelhistories:
-        print("Saving the history1")
-        np.save(results_dir + 'modelhistories-%s.npy' % run_params['name'], np.array(modelhistories, dtype=object))
+        if verbose>2: print("nrepsave=", nrepsave)
+        savehistfile=varhistory_dir + 'modelhistories-%s.npy' % run_params['name']
+        if arrayhist:
+          if verbose: print("Saving the time and the variable temporal history for each replicate and epoch as a continuous array. File: ", savehistfile)
+          # for now keep replicates/epochs as a list modelvarfullarray=np.zeros(nrepsave, nepochsave, 2, [[] for _ in range(nrepsave) nepochsave]
+          # estimate ntimepoints [[] for _ in range(nrepsave
+          #modarr=np.zeros(nrepsave, nepochsave, 2, ntimepoints)  -- do this later!
+        else:
+          if verbose: print("Saving the time and the variable temporal history for each replicate and epoch as a list of lists. File: ", savehistfile)
+
+        modarr=np.array(modelhistories, dtype=object)
+        np.save(savehistfile, modarr)
+                                                       
     return retparams
   
   rparams=run_dp_learning(dpmodel_params, signal_params, run_params, plotit=False, params={})
   
-  if verbose>2: print("nrepsave=", nrepsave)
-  
-  if nrepsave>0: # and nepochsave==0
+  if nrepsave>0: # and epochsave[1]<=0
      if ioligrecord==0:
         hrecordarr=np.array([tthistrecord, yymean, yyse, yyhistrecord, yysehistrecord], dtype=object)
      else:
         hrecordarr=np.array([tthistrecord, yymean, yyse, yyfirst, yyfirstse], dtype=object)
-        
-     hrsavefile='hrecs/'+'%s-dynsnapshot.npy' % run_params['name']
+     if not os.path.exists(varhistory_dir): os.mkdir(varhistory_dir)
+     hrsavefile=varhistory_dir+'%s-dynsnapshot.npy' % run_params['name']
      np.save(hrsavefile, hrecordarr)
      if savematrixhistory:
         np.save(hrsavefile.replace('dynsnapshot','mathist'), axmathistrecord)
