@@ -1642,7 +1642,7 @@ def get_save_params(saverespec, adict=None, verbose=3):
          'a' for all reps, or epochs (then needs 'nreps' and 'nepochs' in adict)
          for epochs one can also choose range using 'r' as a separator: ##r##:
          Example:
-              saver=5-7525 will set saveresults to 5, will save 2 replicates, and will save epochs 5 through 75, inclusive.
+              saver=5r7525 will set saveresults to 5, will save 2 replicates, and will save epochs 5 through 75, inclusive.
          if string has two characters only then the first character is iolig step in the chain from which to record ... I know, it's getting too complicated!
               saver=a25 ... saves OMP variable history all epochs for the first two replicates with saveresults=5
               saver=aa5 ... saves OMP variable history for all epochs and replicates with saveresults=5
